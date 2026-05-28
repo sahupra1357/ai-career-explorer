@@ -1,67 +1,1408 @@
-# AI Career Exploration — STEM Field Knowledge Base
-# Schema version: 1.0
-#
-# To add a new field entry, run:  make add-field
-# To validate all entries, run:   make validate-kb
-#
-# Salary data source: Bureau of Labor Statistics Occupational Outlook Handbook
-# Outlook data source: BLS OOH projections (https://bls.gov/ooh)
-#
-# Each entry must pass FieldEntry Pydantic validation at startup.
-# Mandatory fields: schema_version, field_id, name, plain_english,
-#   sub_areas (3-5), undergrad_path, career_outcomes, personality_fit,
-#   follow_on_questions (3-5).
-# Leave adjacent_fields as [] — populate in a second pass after all entries exist.
+fields:
+- schema_version: '1.0'
+  field_id: biomedical-engineering
+  name: Biomedical Engineering
+  plain_english: 'Biomedical engineers design the tools and devices that doctors use
+    to save lives — think MRI machines, artificial limbs, insulin pumps, and surgical
+    robots. You blend engineering problem-solving with biology to make healthcare
+    work better for patients.
 
-fields: []
+    '
+  sub_areas:
+  - name: Medical Devices
+    description: Designing physical hardware like pacemakers, prosthetics, and diagnostic
+      equipment.
+  - name: Tissue Engineering
+    description: Growing replacement organs and tissues in the lab using biological
+      scaffolds.
+  - name: Bioinformatics
+    description: Using software and data analysis to decode the patterns in biological
+      datasets.
+  - name: Neural Engineering
+    description: Building interfaces between computers and the nervous system, like
+      cochlear implants.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Biology
+    - AP Chemistry
+    - AP Calculus or Pre-Calculus
+    - AP Physics (recommended)
+    common_majors:
+    - Biomedical Engineering
+    - Bioengineering
+    key_courses:
+    - Biomechanics
+    - Cell and Molecular Biology
+    - Signals and Systems
+    - Biomaterials
+    - Physiology for Engineers
+  career_outcomes:
+    common_roles:
+    - Medical Device Engineer
+    - Clinical Engineer
+    - Regulatory Affairs Specialist
+    - Research Scientist (Biomedical)
+    - Prosthetics Designer
+    salary_range:
+      min: 65000
+      max: 130000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 10% growth 2022-2032, faster than average (BLS)
+    outlook_pct: 10.0
+  personality_fit:
+    math_intensity: 4
+    lab_intensity: 4
+    coding_intensity: 3
+    people_facing: 3
+    fit_description: 'You thrive here if you love both biology and engineering equally
+      and feel pulled toward helping people through technology rather than direct
+      patient care. This field rewards patience — FDA approval cycles are long and
+      detail-oriented work is constant.
 
-# ── Template (copy this block to add a new entry manually) ────────────────────
-#
-# - schema_version: "1.0"
-#   field_id: your-field-slug           # lowercase, hyphens, e.g. biomedical-engineering
-#   name: Your Field Name
-#   plain_english: >
-#     2-3 sentence ELI16 description. What does someone in this field actually do
-#     day to day? Use plain language a high schooler can follow.
-#   sub_areas:
-#     - name: Sub-area 1
-#       description: One sentence.
-#     - name: Sub-area 2
-#       description: One sentence.
-#     - name: Sub-area 3
-#       description: One sentence.
-#   undergrad_path:
-#     high_school_prereqs:
-#       - Calculus or Pre-Calculus
-#       - Biology (AP recommended)
-#     common_majors:
-#       - Major Name
-#     key_courses:
-#       - Course Name
-#       - Course Name
-#   career_outcomes:
-#     common_roles:
-#       - Job Title 1
-#       - Job Title 2
-#       - Job Title 3
-#     salary_range:
-#       min: 60000
-#       max: 120000
-#       currency: USD
-#       source_year: 2024    # Year of BLS data used
-#       region: US national median
-#     outlook: "15% growth 2022-2032, faster than average (BLS)"
-#     outlook_pct: 15.0     # Numeric value for programmatic use; null if unavailable
-#   personality_fit:
-#     math_intensity: 3     # 1=low, 5=high
-#     lab_intensity: 2
-#     coding_intensity: 4
-#     people_facing: 2
-#     fit_description: >
-#       2-3 sentences on who thrives here. What mindset, working style, or
-#       academic strength predicts success in this field?
-#   adjacent_fields: []     # Leave empty — populate in second pass after all entries
-#   follow_on_questions:
-#     - "Question a student might ask to go deeper?"
-#     - "Another specific follow-on question?"
-#     - "A third question about this field?"
+      '
+  adjacent_fields:
+  - chemical-engineering
+  - mechanical-engineering
+  - neuroscience
+  - biochemistry
+  follow_on_questions:
+  - What is the difference between biomedical engineering and pre-med?
+  - Do biomedical engineers need to go to graduate school?
+  - What does a typical day look like for a medical device engineer?
+  - How long does it take to get a medical device approved by the FDA?
+- schema_version: '1.0'
+  field_id: computer-science
+  name: Computer Science
+  plain_english: 'Computer scientists build the software, algorithms, and systems
+    that power everything from your phone apps to self-driving cars. You learn how
+    to think logically, solve abstract problems, and turn those solutions into working
+    code that millions of people use.
+
+    '
+  sub_areas:
+  - name: Software Engineering
+    description: Designing, writing, and maintaining large codebases that power applications
+      and services.
+  - name: Artificial Intelligence & Machine Learning
+    description: Building systems that learn from data and make intelligent decisions.
+  - name: Cybersecurity
+    description: Protecting software, networks, and data from unauthorized access
+      and attacks.
+  - name: Systems & Networking
+    description: Designing the low-level infrastructure — operating systems, databases,
+      and the internet itself.
+  - name: Human-Computer Interaction
+    description: Making technology intuitive and accessible through research-driven
+      design.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Computer Science A or Principles
+    - AP Calculus BC
+    - AP Statistics (helpful)
+    common_majors:
+    - Computer Science
+    - Computer Engineering
+    - Software Engineering
+    key_courses:
+    - Data Structures and Algorithms
+    - Discrete Mathematics
+    - Operating Systems
+    - Database Systems
+    - Machine Learning
+  career_outcomes:
+    common_roles:
+    - Software Engineer
+    - Machine Learning Engineer
+    - Data Engineer
+    - Security Engineer
+    - Product Manager (technical)
+    salary_range:
+      min: 85000
+      max: 175000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 25% growth 2022-2032, much faster than average (BLS)
+    outlook_pct: 25.0
+  personality_fit:
+    math_intensity: 4
+    lab_intensity: 1
+    coding_intensity: 5
+    people_facing: 2
+    fit_description: 'This field suits people who love solving puzzles and can sit
+      with ambiguous problems until they break them down into logical steps. The best
+      CS students are endlessly curious about how things work under the hood and don''t
+      mind rewriting code three times to get it right.
+
+      '
+  adjacent_fields:
+  - data-science
+  - electrical-engineering
+  - computer-engineering
+  - statistics
+  follow_on_questions:
+  - Is computer science just about coding all day?
+  - What is the difference between computer science and software engineering?
+  - Do I need to be good at math to study computer science?
+  - What companies hire new computer science graduates?
+- schema_version: '1.0'
+  field_id: mechanical-engineering
+  name: Mechanical Engineering
+  plain_english: 'Mechanical engineers design and build physical things — engines,
+    robots, HVAC systems, consumer products, and anything else with moving parts.
+    It is one of the broadest engineering disciplines, which means you can work in
+    almost any industry from aerospace to renewable energy.
+
+    '
+  sub_areas:
+  - name: Robotics & Automation
+    description: Designing mechanical systems that move and interact with the physical
+      world.
+  - name: Thermodynamics & Energy Systems
+    description: Building engines, turbines, and systems that convert energy from
+      one form to another.
+  - name: Manufacturing & Design
+    description: Turning engineering concepts into real products through CAD, prototyping,
+      and production.
+  - name: Structural Analysis
+    description: Ensuring buildings, bridges, and vehicles can withstand real-world
+      forces without failing.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Physics (Mechanics)
+    - AP Calculus BC
+    - AP Chemistry (helpful)
+    common_majors:
+    - Mechanical Engineering
+    - Aerospace Engineering (related)
+    key_courses:
+    - Statics and Dynamics
+    - Thermodynamics
+    - Fluid Mechanics
+    - Materials Science
+    - CAD and Solid Modeling
+  career_outcomes:
+    common_roles:
+    - Mechanical Engineer
+    - Product Design Engineer
+    - Robotics Engineer
+    - HVAC Engineer
+    - Manufacturing Engineer
+    salary_range:
+      min: 68000
+      max: 125000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 11% growth 2022-2032, faster than average (BLS)
+    outlook_pct: 11.0
+  personality_fit:
+    math_intensity: 4
+    lab_intensity: 3
+    coding_intensity: 2
+    people_facing: 3
+    fit_description: 'Mechanical engineering attracts people who have always taken
+      things apart to see how they work and who enjoy hands-on prototyping as much
+      as drawing on a whiteboard. You will thrive if you like tangible results — something
+      you designed physically exists and functions.
+
+      '
+  adjacent_fields:
+  - aerospace-engineering
+  - electrical-engineering
+  - civil-engineering
+  - materials-science
+  follow_on_questions:
+  - What is the difference between mechanical and electrical engineering?
+  - Do mechanical engineers use a lot of coding?
+  - Can I work in the video game or film industry with a mechanical engineering degree?
+  - What role do mechanical engineers play in electric vehicle design?
+- schema_version: '1.0'
+  field_id: environmental-science
+  name: Environmental Science
+  plain_english: 'Environmental scientists study how the natural world works and how
+    human activity is changing it. They collect data on air, water, soil, and ecosystems,
+    then use that information to guide policy, cleanup projects, and conservation
+    efforts that protect both people and the planet.
+
+    '
+  sub_areas:
+  - name: Climate Science
+    description: Studying how Earth's atmosphere and oceans are changing and what
+      that means for future conditions.
+  - name: Ecology
+    description: Researching how living organisms interact with each other and their
+      physical environment.
+  - name: Environmental Policy & Law
+    description: Translating scientific findings into regulations, conservation strategies,
+      and public policy.
+  - name: Hydrology
+    description: Tracking how water moves through rivers, groundwater, and the broader
+      water cycle.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Environmental Science
+    - AP Biology
+    - AP Chemistry
+    - AP Statistics (recommended)
+    common_majors:
+    - Environmental Science
+    - Environmental Studies
+    - Ecology
+    - Earth Science
+    key_courses:
+    - General Chemistry
+    - Ecology
+    - Environmental Chemistry
+    - GIS and Remote Sensing
+    - Statistics for Scientists
+  career_outcomes:
+    common_roles:
+    - Environmental Scientist
+    - Conservation Biologist
+    - Environmental Consultant
+    - Climate Policy Analyst
+    - Hydrologist
+    salary_range:
+      min: 52000
+      max: 105000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 6% growth 2022-2032, as fast as average (BLS)
+    outlook_pct: 6.0
+  personality_fit:
+    math_intensity: 3
+    lab_intensity: 4
+    coding_intensity: 2
+    people_facing: 3
+    fit_description: 'This field is ideal for students who feel a genuine sense of
+      urgency about climate and conservation and who enjoy working outdoors as much
+      as in a lab. You need to be comfortable with uncertainty — ecosystems are messy
+      and answers are rarely clean.
+
+      '
+  adjacent_fields:
+  - chemical-engineering
+  - geology
+  - biology
+  follow_on_questions:
+  - Is environmental science a good major for finding a job?
+  - What is the difference between environmental science and environmental engineering?
+  - Do environmental scientists work mostly outdoors or in an office?
+  - How does environmental science connect to climate change careers?
+- schema_version: '1.0'
+  field_id: data-science
+  name: Data Science
+  plain_english: 'Data scientists find meaningful patterns hidden inside massive datasets
+    and turn those patterns into decisions that businesses, governments, and researchers
+    actually use. The job blends statistics, programming, and domain expertise — you
+    need to understand numbers AND be able to tell a compelling story with them.
+
+    '
+  sub_areas:
+  - name: Machine Learning & Predictive Modeling
+    description: Building algorithms that automatically find patterns and make predictions
+      from historical data.
+  - name: Data Engineering
+    description: Designing the pipelines and infrastructure that move and store large
+      volumes of data reliably.
+  - name: Statistical Analysis & Experimentation
+    description: Designing experiments and applying statistical methods to test hypotheses
+      rigorously.
+  - name: Data Visualization & Communication
+    description: Translating complex findings into charts, dashboards, and narratives
+      non-experts can act on.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Statistics
+    - AP Calculus BC
+    - AP Computer Science A
+    common_majors:
+    - Data Science
+    - Statistics
+    - Computer Science (with stats focus)
+    - Applied Mathematics
+    key_courses:
+    - Probability and Statistics
+    - Linear Algebra
+    - Machine Learning
+    - Data Wrangling and Visualization
+    - Databases and SQL
+  career_outcomes:
+    common_roles:
+    - Data Scientist
+    - Machine Learning Engineer
+    - Business Intelligence Analyst
+    - Data Engineer
+    - Quantitative Analyst
+    salary_range:
+      min: 80000
+      max: 160000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 35% growth 2022-2032, much faster than average (BLS)
+    outlook_pct: 35.0
+  personality_fit:
+    math_intensity: 5
+    lab_intensity: 1
+    coding_intensity: 4
+    people_facing: 3
+    fit_description: 'Data science suits students who find satisfaction in making
+      sense of chaos — turning a messy spreadsheet into a clear answer. You need genuine
+      curiosity about numbers and the patience to clean data for hours before finding
+      anything interesting.
+
+      '
+  adjacent_fields:
+  - computer-science
+  - applied-mathematics
+  - statistics
+  follow_on_questions:
+  - What is the difference between data science and computer science?
+  - Do I need a graduate degree to become a data scientist?
+  - What programming languages do data scientists use most?
+  - Can data science be applied to fields like healthcare or sports?
+- schema_version: '1.0'
+  field_id: electrical-engineering
+  name: Electrical Engineering
+  plain_english: 'Electrical engineers design the circuits, chips, and power systems
+    that make every electronic device work — from the processor in your laptop to
+    the electrical grid that powers your city. It is a highly technical field that
+    sits at the intersection of physics and mathematics.
+
+    '
+  sub_areas:
+  - name: Electronics & Circuit Design
+    description: Designing the transistors, chips, and circuit boards that control
+      electronic devices.
+  - name: Power Systems
+    description: Generating, transmitting, and distributing electricity safely across
+      large grids.
+  - name: Signal Processing
+    description: Analyzing and manipulating electrical signals for communications,
+      audio, and imaging.
+  - name: Embedded Systems
+    description: Programming microcontrollers and hardware that run inside physical
+      products like cars and appliances.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Physics (Electricity and Magnetism)
+    - AP Calculus BC
+    - AP Computer Science A (helpful)
+    common_majors:
+    - Electrical Engineering
+    - Electrical and Computer Engineering
+    key_courses:
+    - Circuit Analysis
+    - Signals and Systems
+    - Electromagnetics
+    - Digital Logic Design
+    - Microprocessors
+  career_outcomes:
+    common_roles:
+    - Electrical Engineer
+    - Electronics Design Engineer
+    - Power Systems Engineer
+    - Embedded Software Engineer
+    - RF / Wireless Engineer
+    salary_range:
+      min: 72000
+      max: 140000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 9% growth 2022-2032, as fast as average (BLS)
+    outlook_pct: 9.0
+  personality_fit:
+    math_intensity: 5
+    lab_intensity: 3
+    coding_intensity: 3
+    people_facing: 2
+    fit_description: 'Electrical engineering attracts students who are fascinated
+      by the invisible forces behind physical devices and who enjoy working at a very
+      precise, mathematical level. If you have ever wondered how a chip processes
+      a billion instructions per second, this field will give you the deep answers
+      you are looking for.
+
+      '
+  adjacent_fields:
+  - computer-science
+  - computer-engineering
+  - materials-science
+  - physics
+  follow_on_questions:
+  - What is the difference between electrical engineering and computer engineering?
+  - Do electrical engineers write a lot of code?
+  - What role do electrical engineers play in renewable energy?
+  - Is electrical engineering harder than other engineering majors?
+- schema_version: '1.0'
+  field_id: chemical-engineering
+  name: Chemical Engineering
+  plain_english: 'Chemical engineers figure out how to manufacture chemicals, fuels,
+    pharmaceuticals, and materials safely and at massive scale. Where a chemist discovers
+    a new reaction in a test tube, a chemical engineer designs the industrial plant
+    that produces a million gallons of it per day.
+
+    '
+  sub_areas:
+  - name: Process Engineering
+    description: Designing and optimizing large-scale industrial plants that convert
+      raw materials into products.
+  - name: Pharmaceuticals & Biotechnology
+    description: Scaling up drug and vaccine production from lab bench to commercial
+      manufacturing.
+  - name: Materials Science
+    description: Developing new polymers, composites, and advanced materials with
+      specific properties.
+  - name: Environmental & Sustainability Engineering
+    description: Reducing waste, emissions, and energy use in industrial chemical
+      processes.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Chemistry
+    - AP Physics
+    - AP Calculus BC
+    - AP Biology (helpful for biotech track)
+    common_majors:
+    - Chemical Engineering
+    - Materials Science and Engineering
+    key_courses:
+    - Thermodynamics
+    - Fluid Mechanics
+    - Mass Transfer
+    - Reaction Kinetics
+    - Process Control
+  career_outcomes:
+    common_roles:
+    - Chemical Engineer
+    - Process Engineer
+    - Petroleum Engineer
+    - Pharmaceutical Manufacturing Engineer
+    - Materials Engineer
+    salary_range:
+      min: 72000
+      max: 140000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 8% growth 2022-2032, as fast as average (BLS)
+    outlook_pct: 8.0
+  personality_fit:
+    math_intensity: 5
+    lab_intensity: 4
+    coding_intensity: 2
+    people_facing: 2
+    fit_description: 'Chemical engineering rewards students who love chemistry but
+      want to build something real, not just discover reactions. You need a high tolerance
+      for complex math and an ability to hold many interacting variables in your head
+      at once while optimizing for safety, cost, and efficiency simultaneously.
+
+      '
+  adjacent_fields:
+  - biomedical-engineering
+  - materials-science
+  - biochemistry
+  follow_on_questions:
+  - What is the difference between chemistry and chemical engineering?
+  - Do chemical engineers work mostly in labs or in plants?
+  - Can chemical engineers work in the food or cosmetics industry?
+  - Is chemical engineering a good path into the pharmaceutical industry?
+- schema_version: '1.0'
+  field_id: aerospace-engineering
+  name: Aerospace Engineering
+  plain_english: 'Aerospace engineers design aircraft, spacecraft, satellites, and
+    missiles — anything that flies through the air or travels beyond it. The field
+    splits into aeronautics (aircraft within Earth''s atmosphere) and astronautics
+    (rockets and spacecraft in space).
+
+    '
+  sub_areas:
+  - name: Aerodynamics
+    description: Studying how air flows around vehicles to maximize lift and minimize
+      drag.
+  - name: Propulsion
+    description: Designing the jet engines, rocket motors, and ion drives that generate
+      thrust.
+  - name: Structures & Materials
+    description: Ensuring aircraft and spacecraft can withstand extreme forces, temperatures,
+      and pressure changes.
+  - name: Avionics & Flight Systems
+    description: Designing the electronic systems that control navigation, communication,
+      and flight computers.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Physics (Mechanics and E&M)
+    - AP Calculus BC
+    - AP Computer Science A (helpful)
+    common_majors:
+    - Aerospace Engineering
+    - Aeronautical Engineering
+    - Mechanical Engineering (aerospace focus)
+    key_courses:
+    - Aerodynamics
+    - Flight Mechanics
+    - Propulsion
+    - Structural Analysis
+    - Control Systems
+  career_outcomes:
+    common_roles:
+    - Aerospace Engineer
+    - Flight Systems Engineer
+    - Propulsion Engineer
+    - Avionics Engineer
+    - Mission Systems Analyst
+    salary_range:
+      min: 78000
+      max: 148000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 6% growth 2022-2032, as fast as average (BLS)
+    outlook_pct: 6.0
+  personality_fit:
+    math_intensity: 5
+    lab_intensity: 3
+    coding_intensity: 3
+    people_facing: 2
+    fit_description: 'Aerospace engineering is for students who look at aircraft or
+      rockets and feel an almost compulsive need to understand exactly why they work.
+      The field demands exceptional attention to detail because margins for error
+      are extremely narrow — small mistakes in design can have catastrophic consequences.
+
+      '
+  adjacent_fields:
+  - mechanical-engineering
+  - electrical-engineering
+  - physics
+  follow_on_questions:
+  - What is the difference between aerospace and mechanical engineering?
+  - Do I need to be a pilot to become an aerospace engineer?
+  - Can aerospace engineers work on commercial drones or satellites?
+  - What is the hiring landscape like at NASA versus private space companies?
+- schema_version: '1.0'
+  field_id: neuroscience
+  name: Neuroscience
+  plain_english: 'Neuroscientists study the brain and nervous system to understand
+    how we think, feel, remember, and move. It is one of the most interdisciplinary
+    fields in science — combining biology, chemistry, psychology, and increasingly
+    computer science to unlock the mysteries of the most complex object in the known
+    universe.
+
+    '
+  sub_areas:
+  - name: Cognitive Neuroscience
+    description: Studying how brain activity produces thought, memory, attention,
+      and perception.
+  - name: Cellular & Molecular Neuroscience
+    description: Examining how individual neurons work at the chemical and genetic
+      level.
+  - name: Computational Neuroscience
+    description: Using mathematical models and simulations to understand how neural
+      circuits process information.
+  - name: Clinical Neuroscience
+    description: Connecting brain research to the diagnosis and treatment of neurological
+      disorders.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Biology
+    - AP Chemistry
+    - AP Psychology (helpful)
+    - AP Calculus (for computational track)
+    common_majors:
+    - Neuroscience
+    - Biology (with neuroscience concentration)
+    - Cognitive Science
+    key_courses:
+    - Cellular Biology
+    - Neuroanatomy
+    - Behavioral Neuroscience
+    - Research Methods & Statistics
+    - Pharmacology
+  career_outcomes:
+    common_roles:
+    - Research Neuroscientist
+    - Clinical Neuropsychologist
+    - Pharmaceutical Research Scientist
+    - Neurology Physician (MD required)
+    - UX Researcher (cognitive science track)
+    salary_range:
+      min: 55000
+      max: 120000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 11% growth 2022-2032, faster than average (BLS, life scientists)
+    outlook_pct: 11.0
+  personality_fit:
+    math_intensity: 3
+    lab_intensity: 5
+    coding_intensity: 2
+    people_facing: 3
+    fit_description: 'Neuroscience draws students who are endlessly curious about
+      human behavior and the biology beneath it. Most career paths require graduate
+      or medical school, so you should be genuinely excited by long-horizon research
+      rather than looking for a quick path to a job.
+
+      '
+  adjacent_fields:
+  - biomedical-engineering
+  - biology
+  - applied-mathematics
+  follow_on_questions:
+  - Do I need to go to medical school to work in neuroscience?
+  - What is the difference between neuroscience and psychology?
+  - Can neuroscience lead to a career in artificial intelligence research?
+  - What does a typical neuroscience research lab look like day to day?
+- schema_version: '1.0'
+  field_id: applied-mathematics
+  name: Applied Mathematics
+  plain_english: 'Applied mathematicians use advanced math — calculus, statistics,
+    probability, and linear algebra — to model and solve real-world problems in finance,
+    engineering, biology, and computer science. Unlike pure math, the goal is always
+    a practical answer, not just an elegant proof.
+
+    '
+  sub_areas:
+  - name: Mathematical Modeling
+    description: Translating real-world systems like disease spread or stock prices
+      into equations that predict behavior.
+  - name: Numerical Analysis
+    description: Developing algorithms that solve equations too complex for exact
+      analytical solutions.
+  - name: Probability & Statistics
+    description: Quantifying uncertainty and making inferences from incomplete data.
+  - name: Operations Research
+    description: Optimizing complex decisions in logistics, supply chains, and resource
+      allocation.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Calculus BC
+    - AP Statistics
+    - AP Computer Science A (helpful)
+    common_majors:
+    - Applied Mathematics
+    - Mathematics
+    - Statistics
+    key_courses:
+    - Multivariable Calculus
+    - Linear Algebra
+    - Differential Equations
+    - Probability Theory
+    - Numerical Methods
+  career_outcomes:
+    common_roles:
+    - Quantitative Analyst (Quant)
+    - Actuary
+    - Data Scientist
+    - Operations Research Analyst
+    - Mathematician (federal government or research lab)
+    salary_range:
+      min: 72000
+      max: 150000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 29% growth 2022-2032, much faster than average (BLS)
+    outlook_pct: 29.0
+  personality_fit:
+    math_intensity: 5
+    lab_intensity: 1
+    coding_intensity: 3
+    people_facing: 2
+    fit_description: 'Applied mathematics is for students who find the abstract beauty
+      of math exciting but want their work to matter in the real world. You need to
+      be comfortable spending long stretches with no tangible result — progress happens
+      in your head before it appears on paper.
+
+      '
+  adjacent_fields:
+  - data-science
+  - statistics
+  - computer-science
+  follow_on_questions:
+  - What is the difference between applied mathematics and pure mathematics?
+  - What careers can I get with a math degree besides teaching?
+  - Do applied mathematicians need to know how to code?
+  - How does applied mathematics connect to machine learning and AI?
+- schema_version: '1.0'
+  field_id: civil-engineering
+  name: Civil Engineering
+  plain_english: 'Civil engineers design and build the physical infrastructure we
+    all depend on — roads, bridges, water treatment plants, dams, and buildings. It
+    is one of the oldest engineering disciplines and one of the most directly visible:
+    you drive on your work.'
+  sub_areas:
+  - name: Structural Engineering
+    description: Ensuring buildings and bridges can safely bear the loads placed on
+      them.
+  - name: Transportation Engineering
+    description: Designing road networks, highways, rail systems, and airports.
+  - name: Environmental & Water Resources
+    description: Managing clean water supply, flood control, and wastewater treatment
+      systems.
+  - name: Geotechnical Engineering
+    description: Studying soil and rock behavior to safely support foundations and
+      tunnels.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Calculus BC
+    - AP Physics (Mechanics)
+    - AP Environmental Science (helpful)
+    common_majors:
+    - Civil Engineering
+    - Civil and Environmental Engineering
+    key_courses:
+    - Statics
+    - Structural Analysis
+    - Fluid Mechanics
+    - Soil Mechanics
+    - Construction Materials
+  career_outcomes:
+    common_roles:
+    - Structural Engineer
+    - Transportation Engineer
+    - Project Manager
+    - Water Resources Engineer
+    - Geotechnical Engineer
+    salary_range:
+      min: 62000
+      max: 120000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 5% growth 2022-2032, as fast as average (BLS)
+    outlook_pct: 5.0
+  personality_fit:
+    math_intensity: 4
+    lab_intensity: 2
+    coding_intensity: 2
+    people_facing: 4
+    fit_description: Civil engineering suits students who want to build things people
+      actually use and who enjoy managing large, complex projects with many stakeholders.
+      You spend more time coordinating with clients, contractors, and regulators than
+      you do at a desk.
+  adjacent_fields:
+  - mechanical-engineering
+  - environmental-science
+  - architecture
+  follow_on_questions:
+  - What is the difference between civil and structural engineering?
+  - Do civil engineers mostly work outdoors or in an office?
+  - What role do civil engineers play in climate resilience and flood management?
+  - How does civil engineering intersect with urban planning?
+- schema_version: '1.0'
+  field_id: physics
+  name: Physics
+  plain_english: Physicists study the fundamental rules that govern the universe —
+    from the tiniest subatomic particles to the largest structures in space. A physics
+    degree trains you to think rigorously about complex problems, which opens doors
+    in research, finance, engineering, and technology far beyond academia.
+  sub_areas:
+  - name: Quantum Mechanics
+    description: Understanding how matter and energy behave at the atomic and subatomic
+      scale.
+  - name: Astrophysics & Cosmology
+    description: Studying stars, galaxies, black holes, and the origin and structure
+      of the universe.
+  - name: Condensed Matter Physics
+    description: Exploring the properties of solids and liquids to enable new materials
+      and devices.
+  - name: Applied & Computational Physics
+    description: Using physics principles to model and solve engineering and industrial
+      problems.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Physics C (Mechanics and E&M)
+    - AP Calculus BC
+    - AP Chemistry (helpful)
+    common_majors:
+    - Physics
+    - Applied Physics
+    - Engineering Physics
+    key_courses:
+    - Classical Mechanics
+    - Electromagnetism
+    - Quantum Mechanics
+    - Thermodynamics
+    - Mathematical Methods for Physics
+  career_outcomes:
+    common_roles:
+    - Research Physicist
+    - Data Scientist
+    - Quantitative Analyst
+    - Semiconductor Engineer
+    - Medical Physicist
+    salary_range:
+      min: 65000
+      max: 145000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 5% growth 2022-2032, as fast as average (BLS)
+    outlook_pct: 5.0
+  personality_fit:
+    math_intensity: 5
+    lab_intensity: 3
+    coding_intensity: 3
+    people_facing: 2
+    fit_description: Physics attracts students who are genuinely comfortable sitting
+      with hard problems for a long time without a clear path to the answer. The degree
+      itself is less a vocational credential than a proof of rigorous analytical thinking
+      — employers across many industries value it for exactly that reason.
+  adjacent_fields:
+  - applied-mathematics
+  - electrical-engineering
+  - aerospace-engineering
+  follow_on_questions:
+  - What jobs can I get with a physics degree if I don't want to be a professor?
+  - What is the difference between physics and engineering?
+  - Do physicists need to know how to code?
+  - How does physics connect to careers in finance or technology?
+- schema_version: '1.0'
+  field_id: biology
+  name: Biology
+  plain_english: Biologists study living things — from the molecular machinery inside
+    a single cell to the behavior of entire ecosystems. It is the foundational science
+    for medicine, conservation, agriculture, and biotechnology, and one of the most
+    diverse degrees in terms of where it can take you.
+  sub_areas:
+  - name: Molecular & Cell Biology
+    description: Studying how cells work at the genetic and protein level to understand
+      life and disease.
+  - name: Ecology & Conservation
+    description: Researching how organisms interact with each other and their environment
+      in natural settings.
+  - name: Genetics & Genomics
+    description: Mapping genes, understanding inheritance, and interpreting genome-scale
+      data.
+  - name: Microbiology & Immunology
+    description: Studying bacteria, viruses, and the immune system's response to infection
+      and disease.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Biology
+    - AP Chemistry
+    - AP Statistics (recommended)
+    common_majors:
+    - Biology
+    - Molecular Biology
+    - Cellular Biology
+    - Ecology
+    key_courses:
+    - General Chemistry
+    - Organic Chemistry
+    - Genetics
+    - Cell Biology
+    - Statistics for Life Sciences
+  career_outcomes:
+    common_roles:
+    - Research Scientist
+    - Biotech Lab Scientist
+    - Wildlife Biologist
+    - Science Writer
+    - Pre-Med (MD pathway)
+    salary_range:
+      min: 48000
+      max: 105000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 5% growth 2022-2032, as fast as average (BLS)
+    outlook_pct: 5.0
+  personality_fit:
+    math_intensity: 2
+    lab_intensity: 5
+    coding_intensity: 2
+    people_facing: 3
+    fit_description: Biology suits students who are fascinated by living systems and
+      comfortable spending long hours in the lab without guaranteed results. Most
+      well-paying biology careers require graduate or medical school, so you should
+      be motivated by scientific curiosity rather than a desire for a quick path to
+      employment.
+  adjacent_fields:
+  - biomedical-engineering
+  - biochemistry
+  - environmental-science
+  - neuroscience
+  follow_on_questions:
+  - Do I need a graduate degree to have a career in biology?
+  - What is the difference between biology and biochemistry?
+  - Can a biology degree lead to a career outside of science?
+  - What biology sub-field has the best job market right now?
+- schema_version: '1.0'
+  field_id: architecture
+  name: Architecture
+  plain_english: Architects design buildings and spaces where people live, work, learn,
+    and heal. The field combines artistic creativity with structural engineering knowledge,
+    and requires a five-year professional degree followed by years of licensure exams
+    — it is one of the most demanding paths in design.
+  sub_areas:
+  - name: Residential & Commercial Design
+    description: Designing homes, offices, and mixed-use buildings from concept through
+      construction.
+  - name: Urban Design & Planning
+    description: Shaping how neighborhoods and city districts look, function, and
+      grow over time.
+  - name: Sustainable / Green Architecture
+    description: Designing buildings that minimize energy use, carbon emissions, and
+      environmental impact.
+  - name: Historic Preservation
+    description: Restoring and adapting historic structures while preserving their
+      cultural significance.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Art or Drawing
+    - AP Physics (Mechanics)
+    - AP Calculus (helpful)
+    - AP Computer Science (helpful for CAD)
+    common_majors:
+    - Architecture (B.Arch — 5 year)
+    - Architectural Studies (pre-professional 4 year)
+    key_courses:
+    - Architectural Design Studio
+    - Structures
+    - Building Technology
+    - History of Architecture
+    - Digital Fabrication
+  career_outcomes:
+    common_roles:
+    - Licensed Architect
+    - Project Architect
+    - Urban Designer
+    - Interior Architect
+    - Design Consultant
+    salary_range:
+      min: 58000
+      max: 115000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 5% growth 2022-2032, as fast as average (BLS)
+    outlook_pct: 5.0
+  personality_fit:
+    math_intensity: 3
+    lab_intensity: 2
+    coding_intensity: 2
+    people_facing: 4
+    fit_description: Architecture is for students who want to make beautiful, functional
+      things that outlast them — and who can handle years of difficult studio critiques
+      with their confidence intact. The path to licensure is long and the early career
+      salaries are modest, so passion for design must be the real driver.
+  adjacent_fields:
+  - civil-engineering
+  - mechanical-engineering
+  follow_on_questions:
+  - How long does it take to become a licensed architect?
+  - What is the difference between architecture and civil engineering?
+  - Do architects use a lot of software and coding?
+  - Can I go from architecture into urban planning or real estate development?
+- schema_version: '1.0'
+  field_id: industrial-engineering
+  name: Industrial Engineering
+  plain_english: Industrial engineers figure out how to make systems — factories,
+    hospitals, supply chains, airports — run as efficiently as possible. Where other
+    engineers design specific products, industrial engineers design the processes
+    and workflows that produce and deliver everything else.
+  sub_areas:
+  - name: Operations Research
+    description: Using mathematical optimization to find the best solution among many
+      complex trade-offs.
+  - name: Supply Chain & Logistics
+    description: Designing the systems that move goods from raw materials to customers
+      efficiently.
+  - name: Human Factors & Ergonomics
+    description: Making workplaces, tools, and systems safer and more intuitive for
+      the people using them.
+  - name: Quality Engineering
+    description: Building processes that consistently produce products and services
+      at the required quality level.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Calculus BC
+    - AP Statistics
+    - AP Computer Science (helpful)
+    common_majors:
+    - Industrial Engineering
+    - Industrial and Systems Engineering
+    - Operations Research
+    key_courses:
+    - Probability and Statistics
+    - Operations Research
+    - Simulation
+    - Ergonomics
+    - Supply Chain Management
+  career_outcomes:
+    common_roles:
+    - Industrial Engineer
+    - Operations Manager
+    - Supply Chain Analyst
+    - Management Consultant
+    - Process Improvement Engineer
+    salary_range:
+      min: 68000
+      max: 125000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 11% growth 2022-2032, faster than average (BLS)
+    outlook_pct: 11.0
+  personality_fit:
+    math_intensity: 4
+    lab_intensity: 1
+    coding_intensity: 3
+    people_facing: 4
+    fit_description: Industrial engineering attracts students who are bothered by
+      inefficiency and enjoy improving systems rather than building physical products.
+      It is one of the most versatile engineering degrees — IEs work in every industry
+      from healthcare to Amazon warehouses to airline operations.
+  adjacent_fields:
+  - mechanical-engineering
+  - applied-mathematics
+  - data-science
+  follow_on_questions:
+  - What is the difference between industrial engineering and mechanical engineering?
+  - Do industrial engineers end up in management roles?
+  - How does industrial engineering connect to data science and AI?
+  - What industries hire the most industrial engineers?
+- schema_version: '1.0'
+  field_id: materials-science
+  name: Materials Science
+  plain_english: Materials scientists discover and engineer the substances that everything
+    is made from — metals, ceramics, polymers, semiconductors, and nanomaterials.
+    The batteries in electric vehicles, the chips in your phone, and the carbon fiber
+    in aircraft all exist because of materials science breakthroughs.
+  sub_areas:
+  - name: Nanomaterials
+    description: Engineering materials at the atomic scale to create properties impossible
+      in bulk form.
+  - name: Electronic Materials & Semiconductors
+    description: Designing the materials that make transistors, solar cells, and displays
+      work.
+  - name: Biomaterials
+    description: Creating materials that safely interact with the human body for implants
+      and drug delivery.
+  - name: Structural Materials
+    description: Developing stronger, lighter metals and composites for aerospace,
+      automotive, and construction.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Chemistry
+    - AP Physics
+    - AP Calculus BC
+    common_majors:
+    - Materials Science and Engineering
+    - Materials Engineering
+    key_courses:
+    - Thermodynamics of Materials
+    - Crystal Structure
+    - Electronic Properties of Materials
+    - Mechanical Behavior
+    - Materials Characterization
+  career_outcomes:
+    common_roles:
+    - Materials Engineer
+    - Process Engineer (Semiconductors)
+    - Battery Research Scientist
+    - Quality Engineer
+    - R&D Scientist
+    salary_range:
+      min: 68000
+      max: 130000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 8% growth 2022-2032, as fast as average (BLS)
+    outlook_pct: 8.0
+  personality_fit:
+    math_intensity: 4
+    lab_intensity: 5
+    coding_intensity: 2
+    people_facing: 2
+    fit_description: Materials science suits students who are fascinated by why physical
+      things behave the way they do — why glass is transparent, why steel is strong,
+      why certain materials conduct electricity. It is a lab-heavy field driven by
+      curiosity about the physical world at a very small scale.
+  adjacent_fields:
+  - chemical-engineering
+  - mechanical-engineering
+  - electrical-engineering
+  follow_on_questions:
+  - What is the difference between materials science and chemistry?
+  - Do materials scientists work mostly in labs or in factories?
+  - How does materials science connect to the semiconductor and chip industry?
+  - What role does materials science play in battery and clean energy development?
+- schema_version: '1.0'
+  field_id: computer-engineering
+  name: Computer Engineering
+  plain_english: Computer engineers design the hardware that runs software — processors,
+    memory chips, graphics cards, and embedded systems. They sit at the boundary between
+    electrical engineering and computer science, working on both the physical circuits
+    and the low-level code that controls them.
+  sub_areas:
+  - name: Processor & VLSI Design
+    description: Designing the chips and circuits that form the core of every computing
+      device.
+  - name: Embedded Systems
+    description: Programming microcontrollers that run inside physical products like
+      cars, medical devices, and appliances.
+  - name: Computer Architecture
+    description: Designing how a processor is organized to maximize speed, efficiency,
+      and capability.
+  - name: Hardware Security
+    description: Protecting circuits and embedded systems from physical and side-channel
+      attacks.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Physics (E&M)
+    - AP Calculus BC
+    - AP Computer Science A
+    common_majors:
+    - Computer Engineering
+    - Electrical and Computer Engineering (ECE)
+    key_courses:
+    - Digital Logic Design
+    - Computer Architecture
+    - Microprocessors
+    - VLSI Design
+    - Embedded Systems
+  career_outcomes:
+    common_roles:
+    - Hardware Engineer
+    - Embedded Software Engineer
+    - FPGA Engineer
+    - Chip Design Engineer
+    - Systems Engineer
+    salary_range:
+      min: 80000
+      max: 155000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 13% growth 2022-2032, faster than average (BLS, ECE combined)
+    outlook_pct: 13.0
+  personality_fit:
+    math_intensity: 4
+    lab_intensity: 3
+    coding_intensity: 4
+    people_facing: 2
+    fit_description: Computer engineering suits students who find it frustrating to
+      only write software without understanding the hardware beneath it. If you have
+      ever wanted to know how a processor actually executes instructions or how a
+      signal travels through a circuit, this field gives you the full picture.
+  adjacent_fields:
+  - computer-science
+  - electrical-engineering
+  follow_on_questions:
+  - What is the difference between computer engineering and computer science?
+  - What is the difference between computer engineering and electrical engineering?
+  - Do computer engineers write a lot of code?
+  - What companies hire computer engineers fresh out of undergrad?
+- schema_version: '1.0'
+  field_id: biochemistry
+  name: Biochemistry
+  plain_english: Biochemists study the chemical processes that happen inside living
+    cells — how proteins fold, how DNA replicates, how enzymes catalyze reactions,
+    and how drugs interact with biological targets. It is the molecular language that
+    connects chemistry to medicine and biology.
+  sub_areas:
+  - name: Structural Biology
+    description: Determining the 3D shapes of proteins and nucleic acids to understand
+      how they function.
+  - name: Enzymology & Metabolism
+    description: Studying how enzymes speed up the chemical reactions that keep cells
+      alive.
+  - name: Drug Discovery & Pharmacology
+    description: Identifying biological targets for new drugs and testing how molecules
+      interact with them.
+  - name: Molecular Genetics
+    description: Investigating how genes are expressed, regulated, and mutated at
+      the molecular level.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Chemistry
+    - AP Biology
+    - AP Calculus (helpful)
+    common_majors:
+    - Biochemistry
+    - Molecular Biology
+    - Chemistry (biochemistry track)
+    key_courses:
+    - Organic Chemistry
+    - Cell Biology
+    - Genetics
+    - Physical Chemistry
+    - Biochemistry (Proteins and Nucleic Acids)
+  career_outcomes:
+    common_roles:
+    - Research Scientist (Biotech/Pharma)
+    - Lab Technician
+    - Regulatory Scientist
+    - Science Writer
+    - Pre-Med / Pre-Pharmacy pathway
+    salary_range:
+      min: 52000
+      max: 115000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 11% growth 2022-2032, faster than average (BLS, biochemists and biophysicists)
+    outlook_pct: 11.0
+  personality_fit:
+    math_intensity: 3
+    lab_intensity: 5
+    coding_intensity: 1
+    people_facing: 2
+    fit_description: Biochemistry suits students who love both chemistry and biology
+      and want to work at their intersection. Lab work is constant and demands precision
+      — small errors in technique can invalidate weeks of experiments. Most careers
+      in this field require a graduate degree or professional school.
+  adjacent_fields:
+  - biology
+  - chemical-engineering
+  - biomedical-engineering
+  follow_on_questions:
+  - What is the difference between biochemistry and biology?
+  - What is the difference between biochemistry and chemistry?
+  - Is biochemistry a good pre-med major?
+  - What companies hire biochemistry graduates directly out of undergrad?
+- schema_version: '1.0'
+  field_id: geology
+  name: Geology
+  plain_english: Geologists study the Earth itself — its rocks, minerals, structure,
+    and history over billions of years. The field supports the energy industry, environmental
+    consulting, natural hazard assessment, and the hunt for critical minerals needed
+    for batteries and electronics.
+  sub_areas:
+  - name: Petrology & Mineralogy
+    description: Identifying and studying rocks and minerals to understand the processes
+      that formed them.
+  - name: Hydrogeology
+    description: Tracking how water moves through underground rock and soil layers
+      to manage water resources.
+  - name: Geophysics
+    description: Using seismic waves, gravity, and magnetic fields to image structures
+      deep inside the Earth.
+  - name: Environmental Geology
+    description: Assessing geological hazards like earthquakes, landslides, and contaminated
+      sites for remediation.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Environmental Science
+    - AP Chemistry
+    - AP Physics (helpful)
+    - AP Calculus (helpful)
+    common_majors:
+    - Geology
+    - Earth Science
+    - Geophysics
+    - Earth and Environmental Sciences
+    key_courses:
+    - Physical Geology
+    - Mineralogy
+    - Structural Geology
+    - Geochemistry
+    - Field Methods
+  career_outcomes:
+    common_roles:
+    - Geologist (Oil & Gas)
+    - Environmental Geologist
+    - Hydrogeologist
+    - Mining Geologist
+    - Geotechnical Engineer
+    salary_range:
+      min: 58000
+      max: 120000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 5% growth 2022-2032, as fast as average (BLS)
+    outlook_pct: 5.0
+  personality_fit:
+    math_intensity: 3
+    lab_intensity: 4
+    coding_intensity: 2
+    people_facing: 3
+    fit_description: Geology is for students who love being outdoors and want their
+      science to be connected to the physical landscape. Field work — mapping outcrops,
+      collecting samples, drilling cores — is a major part of the job, especially
+      early in your career. It suits people comfortable working in remote locations.
+  adjacent_fields:
+  - environmental-science
+  - applied-mathematics
+  follow_on_questions:
+  - Is geology a good major for finding a job?
+  - What is the difference between geology and environmental science?
+  - Do geologists work mostly outdoors or in an office?
+  - How does geology connect to the critical minerals and battery supply chain?
+- schema_version: '1.0'
+  field_id: statistics
+  name: Statistics
+  plain_english: Statisticians design experiments, analyze data, and quantify uncertainty
+    to help scientists, businesses, and governments make better decisions. Unlike
+    data science, statistics emphasizes rigorous mathematical theory — understanding
+    why methods work, not just how to apply them.
+  sub_areas:
+  - name: Biostatistics
+    description: Designing clinical trials and analyzing medical data to test whether
+      treatments actually work.
+  - name: Bayesian Statistics
+    description: Using prior knowledge combined with new data to update beliefs and
+      make probabilistic predictions.
+  - name: Statistical Machine Learning
+    description: Developing the mathematical foundations behind algorithms that learn
+      from data.
+  - name: Survey Sampling & Official Statistics
+    description: Designing surveys and analyzing population data for government agencies
+      and research organizations.
+  undergrad_path:
+    high_school_prereqs:
+    - AP Statistics
+    - AP Calculus BC
+    - AP Computer Science A (helpful)
+    common_majors:
+    - Statistics
+    - Applied Statistics
+    - Mathematics and Statistics
+    key_courses:
+    - Probability Theory
+    - Mathematical Statistics
+    - Regression Analysis
+    - Experimental Design
+    - Bayesian Statistics
+  career_outcomes:
+    common_roles:
+    - Statistician
+    - Biostatistician
+    - Actuary
+    - Research Analyst
+    - Data Scientist
+    salary_range:
+      min: 72000
+      max: 145000
+      currency: USD
+      source_year: 2024
+      region: US national median
+    outlook: 31% growth 2022-2032, much faster than average (BLS)
+    outlook_pct: 31.0
+  personality_fit:
+    math_intensity: 5
+    lab_intensity: 1
+    coding_intensity: 3
+    people_facing: 3
+    fit_description: Statistics suits students who are not satisfied with just running
+      a machine learning model — they want to understand mathematically why it gives
+      the answers it does. The degree rewards people who enjoy abstract theory and
+      are precise and careful in their reasoning about uncertainty.
+  adjacent_fields:
+  - applied-mathematics
+  - data-science
+  - computer-science
+  follow_on_questions:
+  - What is the difference between statistics and data science?
+  - What is the difference between statistics and mathematics?
+  - Is biostatistics a good career path?
+  - Do statisticians need to know how to code?

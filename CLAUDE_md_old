@@ -1,0 +1,319 @@
+# AI Career Exploration — CLAUDE.md
+
+## Project Overview
+
+An AI-guided career exploration and decision support system for students.
+
+**Core problem:** A student searching "Biomedical Engineering" gets 50 fragmented tabs and still doesn't know if it fits them. This app compresses 10-step research into 1 step.
+
+**Core design principle:** Do NOT build "AI answers questions." Build "AI reduces ambiguity."
+
+**UX flow:** Explore → Narrow → Compare → Decide (not Search → Results)
+
+---
+
+## Tech Stack
+
+### Backend
+- **FastAPI** — REST API server
+- **LangGraph** — agent workflows and multi-step reasoning chains
+- **PostgreSQL + pgvector** — structured data + semantic similarity
+- **Qdrant** — vector search for semantic exploration
+- **Neo4j** (Phase 2+) — career knowledge graph relationships
+
+### AI Layer
+- **Claude (claude-sonnet-4-6)** — primary LLM for reasoning, explanation, comparison, personalization
+- **Embeddings** — semantic field matching from user interest descriptions
+- **RAG** — retrieval over structured career knowledge base
+
+### Frontend
+- **React + TypeScript + Tailwind CSS**
+- **Chat interface** + comparison cards + exploration graph visualization
+
+---
+
+## Architecture: Three Layers
+
+### Layer 1 — Structured Knowledge Graph
+Store fields, subfields, prerequisites, salary ranges, career paths, personality traits, skill requirements as structured data. This ensures consistency.
+
+```
+Biomedical Engineering
+ ├── requires → Calculus, Physics, Biology
+ ├── related_to → Biotechnology, Bioinformatics
+ ├── leads_to → Medical Device Engineer, Clinical Engineer
+ ├── math_level → High
+ ├── coding_level → Medium
+ ├── biology_depth → High
+```
+
+### Layer 2 — LLM Reasoning (Claude)
+Use LLM for: personalization, explanations, comparisons, adaptive questioning, summarization. NOT for raw facts — the knowledge graph handles those.
+
+### Layer 3 — Retrieval Sources
+- University curricula
+- Government job outlook data (BLS)
+- Salary APIs
+- Occupational databases (O*NET)
+- LinkedIn skills trends
+
+---
+
+## Three User Modes
+
+### Mode 1 — Exploration Mode (highest priority)
+**Input:** "I like biology and technology but don't know what field fits."
+**Output:** Ranked fields with match explanations + progressive narrowing questions.
+
+```
+Field                  | Why it fits
+-----------------------|--------------------------------
+Biomedical Engineering | Combines medicine + engineering
+Bioinformatics         | Biology + coding/data
+Biotechnology          | Lab/research-heavy biology
+Neuroscience           | Brain-focused science
+Medical Imaging        | Physics + healthcare tech
+```
+
+### Mode 2 — Deep Dive Mode
+**Input:** A specific field name.
+**Output:** 10-section structured profile (see Output Structure below).
+
+### Mode 3 — Comparison Mode
+**Input:** "Biomedical Engineering vs Biotechnology vs Bioinformatics"
+**Output:** Dimension-by-dimension comparison table:
+- Coding level, biology depth, math intensity
+- Research orientation, salaries, job market
+- Graduate school dependency, work-life balance, future growth
+
+---
+
+## Field Output Structure (10 Sections)
+
+Every Deep Dive page must include these sections in order:
+
+1. **What Is This Field?** — Plain human explanation (no jargon)
+2. **Major Subfields** — Table: subfield + description
+3. **Undergraduate Journey** — Majors, common courses, difficulty, required strengths
+4. **High School Preparation** — Biology, chemistry, calculus, physics, coding
+5. **Career Outcomes** — Table: career title + typical work
+6. **Salary + Job Outlook** — Pulled from structured data / BLS
+7. **Personality Fit** — Who thrives vs. who struggles in this field
+8. **Day in the Life** — What actual daily work looks like (key differentiator)
+9. **Adjacent Fields** — Related fields the student might also like
+10. **Suggested Next Questions** — AI-generated clarifying questions to continue narrowing
+
+---
+
+## MVP Scope
+
+Focus on: **Engineering, Computer Science, Biology-related fields only** (~20 curated fields).
+
+### MVP Feature 1 — AI Exploration Search
+- Input: free-text interest description
+- Output: ranked matching fields with explanation of why each fits
+- Uses: embedding similarity + LLM ranking
+
+### MVP Feature 2 — Deep Dive Page
+- Structured 10-section template per field
+- Hybrid: structured data + LLM-generated explanations
+
+### MVP Feature 3 — Compare Mode
+- Side-by-side dimension comparison
+- Must handle 2–4 fields at once
+
+### MVP Feature 4 — AI Clarifying Questions
+- After exploration results, AI asks follow-up questions
+- User answers adapt the recommendations (e.g., "I dislike chemistry" → removes chemistry-heavy fields)
+
+---
+
+## Field Ontology Schema
+
+Every field in the knowledge base must have these attributes:
+
+```python
+Field:
+  id: str
+  name: str
+  description: str                    # plain language
+  subfields: list[Subfield]
+  math_level: Literal["Low", "Medium", "High"]
+  coding_level: Literal["Low", "Medium", "High"]
+  biology_depth: Literal["Low", "Medium", "High"]
+  research_orientation: Literal["Low", "Medium", "High"]
+  prerequisites: list[str]            # e.g., ["Calculus", "Physics"]
+  personality_traits: list[str]       # who fits
+  career_paths: list[Career]
+  adjacent_fields: list[str]          # field IDs
+  salary_range: SalaryRange           # entry/mid/senior
+  graduate_school_required: bool
+  job_outlook: str                    # BLS growth rate
+  day_in_life: str
+  misconceptions: list[str]
+```
+
+---
+
+## Agent Workflows (LangGraph)
+
+### Exploration Agent
+1. Embed user interest description
+2. Retrieve top-N similar fields from vector store
+3. LLM ranks and filters by fit
+4. LLM generates match explanations
+5. LLM generates 3 clarifying follow-up questions
+
+### Deep Dive Agent
+1. Retrieve structured field data from Postgres
+2. For each section, either return stored text or call LLM to generate
+3. Cache generated explanations back to DB
+
+### Comparison Agent
+1. Retrieve structured data for each requested field
+2. LLM generates narrative comparison per dimension
+3. Return both structured table + narrative summary
+
+### Clarification Agent
+1. Parse user preference statement (e.g., "I hate coding")
+2. Update user preference profile
+3. Re-rank field recommendations
+
+---
+
+## API Endpoints
+
+```
+POST /api/explore          — interest description → ranked fields
+GET  /api/field/{id}       — full deep dive profile
+POST /api/compare          — list of field IDs → comparison table
+POST /api/clarify          — user preference update → re-ranked fields
+GET  /api/fields           — list all available fields (for autocomplete)
+```
+
+---
+
+## Directory Structure
+
+```
+/
+├── backend/
+│   ├── main.py                  # FastAPI app
+│   ├── agents/
+│   │   ├── exploration.py       # LangGraph exploration agent
+│   │   ├── deep_dive.py         # deep dive agent
+│   │   ├── comparison.py        # comparison agent
+│   │   └── clarification.py     # preference adaptation agent
+│   ├── models/
+│   │   ├── field.py             # Pydantic schemas
+│   │   └── user_session.py
+│   ├── db/
+│   │   ├── postgres.py          # SQLAlchemy models
+│   │   └── vector_store.py      # Qdrant client
+│   ├── data/
+│   │   └── fields/              # JSON files for curated fields
+│   └── prompts/
+│       ├── exploration.py       # prompt templates
+│       ├── deep_dive.py
+│       └── comparison.py
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── ExploreInput.tsx
+│   │   │   ├── FieldCard.tsx
+│   │   │   ├── DeepDivePage.tsx
+│   │   │   ├── CompareTable.tsx
+│   │   │   └── ClarifyingQuestions.tsx
+│   │   ├── pages/
+│   │   │   ├── Home.tsx
+│   │   │   ├── Explore.tsx
+│   │   │   ├── Field.tsx
+│   │   │   └── Compare.tsx
+│   │   └── lib/
+│   │       └── api.ts
+│   └── tailwind.config.ts
+└── data/
+    └── seed/                    # 20 curated fields as JSON
+```
+
+---
+
+## Build Phases
+
+### Phase 1 — Knowledge Ontology
+- Define field schema (see above)
+- Manually curate 20 high-quality fields: biomedical engineering, biotech, computer science, AI/ML, neuroscience, mechanical engineering, chemical engineering, bioinformatics, electrical engineering, data science, environmental engineering, cognitive science, medical physics, materials science, civil engineering, robotics, physics, mathematics, statistics, public health
+- Store in Postgres + index in Qdrant
+
+### Phase 2 — Core Agents
+- Build Exploration, Deep Dive, Comparison, Clarification agents in LangGraph
+- Write and test all prompt templates
+- Implement RAG retrieval pipeline
+
+### Phase 3 — API Layer
+- FastAPI with all 5 endpoints
+- Session management for preference state
+- Response caching for Deep Dive sections
+
+### Phase 4 — Frontend
+- Explore input with streaming results
+- Field card grid with match explanations
+- Deep Dive page (10 sections, collapsible)
+- Side-by-side Compare view
+- Clarifying question flow (chat-like)
+
+### Phase 5 — Live Data
+- BLS job outlook integration
+- Salary API integration
+- LinkedIn trends (optional)
+
+---
+
+## Key Constraints
+
+- **Narrow first:** STEM/engineering/biology only for MVP. Do not expand ontology prematurely.
+- **Structured data first:** LLM explains; the knowledge graph stores facts. Never let LLM hallucinate salaries or job stats.
+- **No generic chatbot UI:** The experience must feel like guided discovery, not a Q&A box.
+- **Cache aggressively:** Deep Dive content is expensive to generate; store and reuse LLM outputs per field.
+- **Session state matters:** User preferences (dislikes, strengths) must persist within a session to power the Clarification Agent.
+
+---
+
+## Prompt Engineering Guidelines
+
+All prompts must be in `/backend/prompts/`. Each prompt file exports a function that takes structured field data and returns a formatted string.
+
+- Exploration prompt: emphasize "match explanation" not just listing fields
+- Deep Dive prompts: one prompt per section; tone should be conversational, not Wikipedia-like
+- Comparison prompt: force dimension-by-dimension structure; return JSON then render
+- Clarification prompt: extract preference signals (like/dislike/strength/weakness) as structured output
+
+Never write prompts that say "You are a helpful assistant." Frame the AI role specifically: "You are a career exploration guide helping a student understand..."
+
+---
+
+## Running the App
+
+```bash
+# Backend
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+
+# Frontend
+cd frontend
+npm install
+npm run dev
+
+# Seed knowledge base
+python backend/data/seed_fields.py
+```
+
+---
+
+## Testing
+
+- Unit test all LangGraph agents with mocked LLM responses
+- Integration test each API endpoint with a real field (Biomedical Engineering)
+- For Comparison mode, always test 2-field and 3-field cases
+- Snapshot test Deep Dive output structure to catch missing sections

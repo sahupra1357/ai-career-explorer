@@ -1,4 +1,4 @@
-.PHONY: install dev test validate-kb add-field clear-cache lint
+.PHONY: install dev dev-ui dev-real test validate-kb add-field clear-cache lint build
 
 # ── Setup ─────────────────────────────────────────────────────────────────────
 
@@ -13,12 +13,15 @@ install:
 # ── Development ───────────────────────────────────────────────────────────────
 
 # Start the FastAPI backend with MOCK_CLAUDE enabled (no API cost, instant responses).
-# Open a second terminal and start the React frontend separately once it exists.
 dev:
 	@if [ ! -f .env ]; then \
 		echo "Error: .env not found. Run: cp .env.example .env"; exit 1; \
 	fi
 	MOCK_CLAUDE=1 .venv/bin/uvicorn app.main:app --reload --port 8000
+
+# Start the React frontend (run in a second terminal alongside make dev)
+dev-ui:
+	cd ui && npm run dev
 
 # Start with real Claude (costs money — use for final testing only)
 dev-real:
@@ -54,6 +57,13 @@ field-template:
 # Clear the in-memory LRU cache (dev server must be running)
 clear-cache:
 	curl -s -X POST http://localhost:8000/api/cache/clear | python3 -m json.tool
+
+# ── Build (production) ────────────────────────────────────────────────────────
+
+# Build the React frontend into ui/dist (picked up by FastAPI static file serving)
+build:
+	cd ui && npm run build
+	@echo "Built. Run 'uvicorn app.main:app' to serve the full app on :8000."
 
 # ── Code quality ──────────────────────────────────────────────────────────────
 

@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: ai-career-explorer
+    runtime: docker
+    plan: free
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false        # set manually in Render dashboard — never committed
+      - key: MOCK_CLAUDE
+        value: "0"
+      - key: CLAUDE_MODEL
+        value: claude-sonnet-4-6
+      - key: CLAUDE_TIMEOUT_S
+        value: "15"
+    healthCheckPath: /health
