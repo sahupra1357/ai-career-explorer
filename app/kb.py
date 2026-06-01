@@ -32,6 +32,9 @@ class FieldStore:
             loaded[field.field_id] = field
         self._fields = loaded
 
+    def all(self) -> list[FieldEntry]:
+        return list(self._fields.values())
+
     def list(self) -> list[dict]:
         return [{"field_id": f.field_id, "name": f.name} for f in self._fields.values()]
 

@@ -20,9 +20,13 @@ from .kb import store
 from .models import (
     CompareRequest,
     CompareSuccess,
+    DirectRequest,
+    ExploreRequest,
+    ExploreResponse,
     FieldSummary,
     NotFound,
     PartialNotFound,
+    RecommendedField,
     normalize_slug,
 )
 from .summarize import clear_cache, generate_summary
@@ -62,8 +66,31 @@ async def lifespan(app: FastAPI):
     store.load(fields_file)
     log.info("kb_loaded", path=fields_file, count=len(store))
 
+    # 3. Phase 2: connect pgvector (skip when MOCK_EMBEDDINGS=1)
+    app.state.db_pool = None
+    if os.getenv("MOCK_EMBEDDINGS") != "1":
+        database_url = os.getenv("DATABASE_URL")
+        if database_url:
+            try:
+                import asyncpg
+                app.state.db_pool = await asyncpg.create_pool(
+                    database_url, min_size=2, max_size=10
+                )
+                log.info("db_pool_ready")
+            except Exception as exc:
+                log.warning("db_pool_failed", error=str(exc))
+        else:
+            log.warning("database_url_missing", hint="set DATABASE_URL in .env or use MOCK_EMBEDDINGS=1")
+
+    # 4. Phase 2: compile LangGraph explore graph
+    from .explore_graph import get_graph
+    app.state.explore_graph = get_graph()
+    log.info("explore_graph_ready")
+
     yield  # app runs here
 
+    if app.state.db_pool is not None:
+        await app.state.db_pool.close()
     log.info("shutdown")
 
 
@@ -165,6 +192,112 @@ async def cache_clear():
     cleared = clear_cache()
     log.info("cache_cleared", entries=cleared)
     return {"cleared": cleared}
+
+
+@app.post("/api/explore", response_model=ExploreResponse)
+@limiter.limit("20/minute")
+async def explore(body: ExploreRequest, request: Request):
+    """Multi-turn explore conversation via LangGraph."""
+    from .explore_graph import ExploreGraphState
+    from .session_store import get_session, new_session, save_session
+
+    mock = os.getenv("MOCK_EMBEDDINGS") == "1"
+    pool = request.app.state.db_pool
+    if not mock and pool is None:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "error": "db_unavailable",
+                "message": (
+                    "pgvector is not connected. Start Postgres with 'make dev-db', "
+                    "run 'make embed', then restart the server. "
+                    "Or set MOCK_EMBEDDINGS=1 in .env for zero-infra dev."
+                ),
+            },
+        )
+
+    session_id = body.session_id
+    if session_id:
+        saved = get_session(session_id)
+        if saved is None:
+            fresh_id = new_session()
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "error": "session_expired",
+                    "session_id": fresh_id,
+                    "message": "Session expired. Starting fresh.",
+                },
+            )
+        state: ExploreGraphState = {**saved, "pool": pool, "field_ids": [f.field_id for f in store.all()]}
+    else:
+        session_id = new_session()
+        state = {
+            "messages": [],
+            "user_interests": [],
+            "clarification_turns": 0,
+            "recommended_fields": [],
+            "status": "intake",
+            "pool": pool,
+            "field_ids": [f.field_id for f in store.all()],
+        }
+
+    state["messages"].append({"role": "user", "content": body.message})
+
+    graph = request.app.state.explore_graph
+    result = await graph.ainvoke(state)
+
+    reply = ""
+    for m in reversed(result.get("messages", [])):
+        if m.get("role") == "assistant":
+            reply = m["content"]
+            break
+
+    serializable = {
+        "messages": result.get("messages", []),
+        "user_interests": result.get("user_interests", []),
+        "clarification_turns": result.get("clarification_turns", 0),
+        "recommended_fields": result.get("recommended_fields", []),
+        "status": result.get("status", "intake"),
+    }
+    save_session(session_id, serializable)
+
+    recommended_fields = [
+        RecommendedField(
+            field_id=r["field_id"],
+            name=r["name"],
+            reason=r.get("reason", ""),
+            score=r.get("score"),
+        )
+        for r in result.get("recommended_fields", [])
+    ]
+
+    status = result.get("status", "intake")
+    if status not in ("intake", "clarifying", "complete"):
+        status = "clarifying"
+
+    log.info("explore_ok", session_id=session_id, status=status, recommended=len(recommended_fields))
+    return ExploreResponse(
+        session_id=session_id,
+        reply=reply or "Tell me more about what interests you!",
+        status=status,
+        recommended_fields=recommended_fields,
+    )
+
+
+@app.post("/api/direct")
+@limiter.limit("10/minute")
+async def direct(body: DirectRequest, request: Request):
+    """Generate a structured deep-dive for a single STEM field."""
+    from .direct import generate_deep_dive
+
+    result = await generate_deep_dive(body.field_id)
+    if result is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "not_found", "message": f"Field '{body.field_id}' not found."},
+        )
+    return result
 
 
 @app.get("/health")

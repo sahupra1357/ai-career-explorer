@@ -81,7 +81,8 @@ async def generate_summary(
         _write_prompt_log(request_id, prompt)
 
     result = await _call_claude(prompt, request_id)
-    _summary_cache[field_ids] = result
+    if result is not None:
+        _summary_cache[field_ids] = result
     return result
 
 

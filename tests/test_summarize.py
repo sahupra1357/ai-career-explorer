@@ -139,8 +139,8 @@ class TestClaudeErrors:
 
         assert result is None
 
-    async def test_none_result_is_cached(self, monkeypatch):
-        """A failed Claude call (None) should be cached to avoid hammering the API."""
+    async def test_none_result_not_cached(self, monkeypatch):
+        """A failed Claude call (None) must NOT be cached — retry on next request."""
         monkeypatch.delenv("MOCK_CLAUDE", raising=False)
         call_count = 0
 
@@ -154,7 +154,7 @@ class TestClaudeErrors:
             r2 = await generate_summary([FIELD_A, FIELD_B], "req-2")
 
         assert r1 is None and r2 is None
-        assert call_count == 1  # failure is cached — Claude not retried
+        assert call_count == 2  # None not cached — Claude retried each time
 
 
 # ── DEBUG_PROMPTS ──────────────────────────────────────────────────────────────

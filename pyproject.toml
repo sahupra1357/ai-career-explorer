@@ -1,3 +1,8 @@
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+env = [
+    "MOCK_CLAUDE=1",
+    "ANTHROPIC_API_KEY=test-key",
+    "MOCK_EMBEDDINGS=1",
+]
