@@ -74,3 +74,32 @@ export interface PartialNotFoundError {
 }
 
 export type CompareError = NotFoundError | PartialNotFoundError;
+
+// ── Phase 2: Explore ──────────────────────────────────────────────────────────
+
+export interface RecommendedField {
+  field_id: string;
+  name: string;
+  reason: string;
+  score: number | null;
+}
+
+export interface ExploreResponse {
+  session_id: string;
+  reply: string;
+  status: 'intake' | 'clarifying' | 'complete';
+  recommended_fields: RecommendedField[];
+}
+
+// ── Phase 2: Direct (deep dive) ───────────────────────────────────────────────
+
+export interface DeepDiveSection {
+  title: string;
+  content: string;
+}
+
+export interface DirectResponse {
+  field_id: string;
+  name: string;
+  sections: DeepDiveSection[];
+}

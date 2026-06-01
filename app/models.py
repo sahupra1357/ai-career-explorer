@@ -103,3 +103,51 @@ class NotFound(BaseModel):
     error: Literal["not_found"] = "not_found"
     message: str
     suggestions: list[str]
+
+
+# ── Phase 2: Explore mode ──────────────────────────────────────────────────────
+
+class ExploreRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=2000)
+    session_id: Optional[str] = None
+
+    @field_validator("message")
+    @classmethod
+    def strip_message(cls, v: str) -> str:
+        return v.strip()
+
+
+class RecommendedField(BaseModel):
+    field_id: str
+    name: str
+    reason: str
+    score: Optional[float] = None
+
+
+class ExploreResponse(BaseModel):
+    session_id: str
+    reply: str
+    status: Literal["intake", "clarifying", "complete"]
+    recommended_fields: list[RecommendedField] = []
+
+
+# ── Phase 2: Direct (deep dive) mode ──────────────────────────────────────────
+
+class DirectRequest(BaseModel):
+    field_id: str = Field(min_length=1, max_length=100)
+
+    @field_validator("field_id")
+    @classmethod
+    def normalize_field_id(cls, v: str) -> str:
+        return normalize_slug(v)
+
+
+class DeepDiveSection(BaseModel):
+    title: str
+    content: str
+
+
+class DirectResponse(BaseModel):
+    field_id: str
+    name: str
+    sections: list[DeepDiveSection]
