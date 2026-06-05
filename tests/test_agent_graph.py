@@ -130,3 +130,27 @@ class TestAgentMode:
             assert "missing_curriculum_source" not in p["data_quality_flags"]
             assert "[MOCK agent]" in p["curriculum_summary"]
             assert p["sources"][0]["label"] == "Official program page"
+
+    async def test_stream_emits_live_progress_then_done(self, monkeypatch):
+        monkeypatch.setenv("COURSE_SEARCH_MODE", "agent")
+        monkeypatch.setenv("KG_BACKEND", "sample")
+        monkeypatch.setenv("MOCK_CLAUDE", "1")
+
+        events = []
+        async with await _client() as c:
+            async with c.stream("POST", "/api/course-search/stream", json={
+                "course_query": "Computer Science", "city": "Berkeley", "state": "CA", "home_state": "CA",
+            }) as resp:
+                assert resp.status_code == 200
+                async for line in resp.aiter_lines():
+                    if line.startswith("data:"):
+                        events.append(json.loads(line[5:].strip()))
+
+        phases = [e["phase"] for e in events]
+        assert "seeded" in phases                       # total announced
+        assert phases.count("investigating") >= 1       # per-college progress
+        assert phases[-1] == "done"                     # final result last
+        # progress is monotonic and ends at total
+        investigating = [e for e in events if e["phase"] == "investigating"]
+        assert investigating[-1]["done"] == investigating[-1]["total"]
+        assert events[-1]["result"]["tiers"]

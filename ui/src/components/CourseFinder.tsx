@@ -1,12 +1,26 @@
 import { useState } from 'react';
-import { searchCourses } from '../api';
+import { searchCoursesStream, type SearchProgress } from '../api';
 import type { CourseSearchResponse, MoneyAmount, RankedProgram } from '../types';
 
 type SearchState =
   | { phase: 'idle' }
-  | { phase: 'loading' }
+  | { phase: 'loading'; progress: SearchProgress }
   | { phase: 'success'; data: CourseSearchResponse }
   | { phase: 'error'; message: string };
+
+function progressPct(p: SearchProgress): number {
+  if (p.phase === 'investigating' && p.total) {
+    return Math.min(96, 10 + Math.round((p.done! / p.total) * 86));
+  }
+  if (p.phase === 'seeded') return 10;
+  return 5;
+}
+
+function progressLabel(p: SearchProgress): string {
+  if (p.phase === 'seeded') return `Found ${p.total} colleges — dispatching research agents…`;
+  if (p.phase === 'investigating') return `Investigating ${p.done} of ${p.total} colleges…`;
+  return 'Finding colleges…';
+}
 
 const STATES: [string, string][] = [
   ['AL', 'Alabama'], ['AK', 'Alaska'], ['AZ', 'Arizona'], ['AR', 'Arkansas'],
@@ -160,13 +174,17 @@ export default function CourseFinder() {
 
   async function submit() {
     if (course.trim().length < 2 || searchState.phase === 'loading') return;
-    setSearchState({ phase: 'loading' });
-    const result = await searchCourses({
-      course_query: course,
-      city: city || undefined,
-      state: state || undefined,
-      home_state: homeState || undefined,
-    });
+    setSearchState({ phase: 'loading', progress: { phase: 'starting' } });
+    const result = await searchCoursesStream(
+      {
+        course_query: course,
+        city: city || undefined,
+        state: state || undefined,
+        home_state: homeState || undefined,
+      },
+      (progress) =>
+        setSearchState((prev) => (prev.phase === 'loading' ? { phase: 'loading', progress } : prev)),
+    );
     setSearchState(result.ok ? { phase: 'success', data: result.data } : { phase: 'error', message: result.message });
   }
 
@@ -228,6 +246,25 @@ export default function CourseFinder() {
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
             The result groups programs by distance and residency logic, then shows curriculum structure, application papers,
             fee context, and official links so a family can verify the details before shortlisting.
+          </p>
+        </section>
+      )}
+
+      {searchState.phase === 'loading' && (
+        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-slate-800">{progressLabel(searchState.progress)}</p>
+            <span className="text-xs font-medium text-slate-400">{progressPct(searchState.progress)}%</span>
+          </div>
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+            <div
+              className="h-full rounded-full bg-cyan-600 transition-all duration-500 ease-out"
+              style={{ width: `${progressPct(searchState.progress)}%` }}
+            />
+          </div>
+          <p className="mt-3 text-xs leading-5 text-slate-500">
+            Research agents are reading each college’s official program pages and extracting the
+            curriculum, admissions, and fees. This can take up to a minute.
           </p>
         </section>
       )}

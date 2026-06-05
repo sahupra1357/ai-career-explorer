@@ -117,3 +117,41 @@ async def run_agent_search(body: CourseSearchRequest, request_id: str) -> Course
         tiers=result["tiers"],
         guidance=result["guidance"],
     )
+
+
+async def run_agent_search_stream(body: CourseSearchRequest, request_id: str):
+    """Yield live progress events as the graph runs, then a final 'done' with the result.
+
+    Events: {phase:'seeded', total} → {phase:'investigating', done, total} per college →
+    {phase:'done', result}. Lets the UI show a real "investigating X of N colleges" bar.
+    """
+    plan = build_search_plan(body)
+    total = 0
+    done = 0
+    final: CourseSearchResponse | None = None
+
+    async for update in get_agent_graph().astream(
+        {"plan": plan, "request_id": request_id,
+         "candidates": [], "findings": [], "tiers": [], "guidance": []},
+        stream_mode="updates",
+    ):
+        if "seed" in update:
+            total = len(update["seed"].get("candidates", []))
+            yield {"phase": "seeded", "total": total, "done": 0}
+        elif "subagent" in update:
+            done += len(update["subagent"].get("findings", []))
+            yield {"phase": "investigating", "total": total, "done": done}
+        elif "aggregate" in update:
+            agg = update["aggregate"]
+            final = CourseSearchResponse(
+                request_id=request_id, query=plan.normalized_query,
+                location_used=_location_used(plan),
+                tiers=agg["tiers"], guidance=agg["guidance"],
+            )
+
+    if final is None:
+        final = CourseSearchResponse(
+            request_id=request_id, query=plan.normalized_query,
+            location_used=_location_used(plan), tiers=[], guidance=[],
+        )
+    yield {"phase": "done", "result": final.model_dump(mode="json")}

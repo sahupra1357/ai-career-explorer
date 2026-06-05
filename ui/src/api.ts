@@ -129,3 +129,62 @@ export async function searchCourses(payload: CourseSearchPayload): Promise<Cours
   const body = await res.json().catch(() => ({}));
   return { ok: false, message: body.message ?? 'Course search failed. Please check the course and location.' };
 }
+
+export interface SearchProgress {
+  phase: 'starting' | 'seeded' | 'investigating';
+  done?: number;
+  total?: number;
+}
+
+// Streaming variant: reports live progress (colleges investigated) via onProgress,
+// then resolves with the final result. Falls back gracefully on any stream error.
+export async function searchCoursesStream(
+  payload: CourseSearchPayload,
+  onProgress: (p: SearchProgress) => void,
+): Promise<CourseSearchResult> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/api/course-search/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    return { ok: false, message: 'Could not reach the server. Is the backend running?' };
+  }
+  if (!res.ok || !res.body) {
+    return { ok: false, message: 'Course search failed. Please check the course and location.' };
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let final: CourseSearchResponse | null = null;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const chunks = buffer.split('\n\n');
+      buffer = chunks.pop() ?? '';
+      for (const chunk of chunks) {
+        const line = chunk.split('\n').find((l) => l.startsWith('data:'));
+        if (!line) continue;
+        let event: { phase: string; message?: string; result?: CourseSearchResponse; done?: number; total?: number };
+        try {
+          event = JSON.parse(line.slice(5).trim());
+        } catch {
+          continue;
+        }
+        if (event.phase === 'done') final = event.result ?? null;
+        else if (event.phase === 'error') return { ok: false, message: event.message ?? 'Search failed.' };
+        else onProgress(event as SearchProgress);
+      }
+    }
+  } catch {
+    return { ok: false, message: 'Connection interrupted during search. Please try again.' };
+  }
+
+  if (final) return { ok: true, data: final };
+  return { ok: false, message: 'Search ended without a result.' };
+}

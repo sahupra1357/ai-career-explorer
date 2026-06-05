@@ -1,5 +1,6 @@
 """AI Career Exploration — FastAPI application."""
 
+import json
 import os
 import uuid
 from contextlib import asynccontextmanager
@@ -10,7 +11,7 @@ import structlog.stdlib
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -215,6 +216,34 @@ async def course_search(body: CourseSearchRequest, request: Request):
         tiers=[{"tier": t.tier, "count": len(t.programs)} for t in result.tiers],
     )
     return result
+
+
+@app.post("/api/course-search/stream")
+@limiter.limit("10/minute")
+async def course_search_stream(body: CourseSearchRequest, request: Request):
+    """Stream live progress (Server-Sent Events) while the agent investigates colleges.
+
+    Emits {phase:'seeded',total} → {phase:'investigating',done,total} per college →
+    {phase:'done',result}. Non-agent modes emit a single 'done' (they're instant).
+    """
+    request_id = str(uuid.uuid4())
+
+    async def gen():
+        try:
+            if os.getenv("COURSE_SEARCH_MODE", "agent") == "agent":
+                from .course_search.agent_graph import run_agent_search_stream
+                async for event in run_agent_search_stream(body, request_id):
+                    yield f"data: {json.dumps(event)}\n\n"
+            else:
+                result = await program_store.search(body, request_id)
+                done = {"phase": "done", "result": result.model_dump(mode="json")}
+                yield f"data: {json.dumps(done)}\n\n"
+        except Exception as exc:  # noqa: BLE001
+            log.error("course_search_stream_error", request_id=request_id, error=str(exc))
+            yield f"data: {json.dumps({'phase': 'error', 'message': 'Course search failed.'})}\n\n"
+
+    return StreamingResponse(gen(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @app.post("/api/explore", response_model=ExploreResponse)
