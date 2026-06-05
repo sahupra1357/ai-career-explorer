@@ -1,4 +1,11 @@
-import type { FieldSummary, CompareSuccess, CompareError, ExploreResponse, DirectResponse } from './types';
+import type {
+  FieldSummary,
+  CompareSuccess,
+  CompareError,
+  ExploreResponse,
+  DirectResponse,
+  CourseSearchResponse,
+} from './types';
 
 const BASE = '';
 
@@ -90,4 +97,35 @@ export async function fetchDeepDive(fieldId: string): Promise<DirectResult> {
 
   const body = await res.json().catch(() => ({}));
   return { ok: false, message: body.message ?? 'Field not found.' };
+}
+
+export type CourseSearchResult =
+  | { ok: true; data: CourseSearchResponse }
+  | { ok: false; message: string };
+
+export interface CourseSearchPayload {
+  course_query: string;
+  city?: string;
+  state?: string;
+  home_state?: string;
+}
+
+export async function searchCourses(payload: CourseSearchPayload): Promise<CourseSearchResult> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/api/course-search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    return { ok: false, message: 'Could not reach the server. Is the backend running?' };
+  }
+
+  if (res.ok) {
+    return { ok: true, data: await res.json() };
+  }
+
+  const body = await res.json().catch(() => ({}));
+  return { ok: false, message: body.message ?? 'Course search failed. Please check the course and location.' };
 }

@@ -1,4 +1,4 @@
-.PHONY: install dev dev-ui dev-real dev-db dev-phase2 migrate embed new-migration test validate-kb add-field clear-cache lint build
+.PHONY: install dev dev-live dev-kg dev-ui dev-real dev-db dev-phase2 migrate embed build-kg load-carnegie load-rankings new-migration test validate-kb add-field clear-cache lint build run run-live run-mock
 
 # ── Setup ─────────────────────────────────────────────────────────────────────
 
@@ -18,6 +18,21 @@ dev:
 		echo "Error: .env not found. Run: cp .env.example .env"; exit 1; \
 	fi
 	MOCK_CLAUDE=1 .venv/bin/uvicorn app.main:app --reload --port 8000
+
+# Start the backend with live official .edu course discovery.
+dev-live:
+	@if [ ! -f .env ]; then \
+		echo "Error: .env not found. Run: cp .env.example .env"; exit 1; \
+	fi
+	COURSE_SEARCH_MODE=live MOCK_CLAUDE=1 .venv/bin/uvicorn app.main:app --reload --port 8000
+
+# Start the backend serving course search from the pre-built knowledge graph (instant).
+# Offline by default (sample store); set KG_BACKEND=postgres + DATABASE_URL for the DB.
+dev-kg:
+	@if [ ! -f .env ]; then \
+		echo "Error: .env not found. Run: cp .env.example .env"; exit 1; \
+	fi
+	COURSE_SEARCH_MODE=kg MOCK_CLAUDE=1 .venv/bin/uvicorn app.main:app --reload --port 8000
 
 # Start the React frontend (run in a second terminal alongside make dev)
 dev-ui:
@@ -89,6 +104,35 @@ embed: migrate
 	fi
 	.venv/bin/python scripts/embed_fields.py
 
+# Build the college knowledge graph into Postgres (offline sample by default; idempotent).
+# Live Scorecard slice: make build-kg ARGS="--source api --states CA,OR --cip 11.07,30.70"
+# 2. national CS + Data Science build (replaces sample rows in Postgres):
+# make build-kg ARGS="--source api --states CA,OR,WA,NV,AZ,TX,NY,MA,IL,GA --cip 11.07,30.70"
+# (or all states — just extend the --states list)
+build-kg: migrate
+	@if [ -z "$$DATABASE_URL" ]; then \
+		if [ -f .env ]; then \
+			export $$(grep -v '^#' .env | grep -E 'DATABASE_URL|SCORECARD_API_KEY' | xargs); \
+		fi; \
+	fi
+	.venv/bin/python scripts/build_kg.py $(ARGS)
+
+# Load Carnegie Classification (free) into kg_colleges (run build-kg first).
+# Usage: make load-carnegie FILE=carnegie.csv [ARGS="--year 2021 --col-class BASIC2021"]
+load-carnegie: migrate
+	@if [ -z "$$DATABASE_URL" ]; then \
+		if [ -f .env ]; then export $$(grep -v '^#' .env | grep DATABASE_URL | xargs); fi; \
+	fi
+	.venv/bin/python scripts/load_carnegie.py --file $(FILE) $(ARGS)
+
+# Load LICENSED provider ranks (e.g. U.S. News) into kg_rankings. Only with licensed data.
+# Usage: make load-rankings FILE=usnews.csv LICENSE="USN Academic Insights #1234"
+load-rankings: migrate
+	@if [ -z "$$DATABASE_URL" ]; then \
+		if [ -f .env ]; then export $$(grep -v '^#' .env | grep DATABASE_URL | xargs); fi; \
+	fi
+	.venv/bin/python scripts/load_rankings.py --file $(FILE) --license "$(LICENSE)" $(ARGS)
+
 # Create a new numbered migration file (usage: make new-migration NAME=002_add_sessions)
 new-migration:
 	@if [ -z "$(NAME)" ]; then \
@@ -108,7 +152,29 @@ clear-cache:
 # Build the React frontend into ui/dist (picked up by FastAPI static file serving)
 build:
 	cd ui && npm run build
-	@echo "Built. Run 'uvicorn app.main:app' to serve the full app on :8000."
+	@echo "Built. Run 'make run' to serve the full app on :8000."
+
+# Serve the built React app through FastAPI. Requires ui/dist from `make build`.
+run:
+	@if [ ! -d ui/dist ]; then \
+		echo "Error: ui/dist not found. Run: make build"; exit 1; \
+	fi
+	.venv/bin/uvicorn app.main:app --port 8000
+
+# Serve the built app without loading curated course-search fallback data.
+# Course search uses live official .edu discovery only.
+run-live:
+	@if [ ! -d ui/dist ]; then \
+		echo "Error: ui/dist not found. Run: make build"; exit 1; \
+	fi
+	COURSE_SEARCH_MODE=live .venv/bin/uvicorn app.main:app --port 8000
+
+# Serve the built app locally without real Claude/embedding infrastructure.
+run-mock:
+	@if [ ! -d ui/dist ]; then \
+		echo "Error: ui/dist not found. Run: make build"; exit 1; \
+	fi
+	MOCK_CLAUDE=1 MOCK_EMBEDDINGS=1 ANTHROPIC_API_KEY=test-key .venv/bin/uvicorn app.main:app --port 8000
 
 # ── Code quality ──────────────────────────────────────────────────────────────
 

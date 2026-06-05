@@ -20,6 +20,8 @@ from .kb import store
 from .models import (
     CompareRequest,
     CompareSuccess,
+    CourseSearchRequest,
+    CourseSearchResponse,
     DirectRequest,
     ExploreRequest,
     ExploreResponse,
@@ -30,6 +32,7 @@ from .models import (
     normalize_slug,
 )
 from .summarize import clear_cache, generate_summary
+from .course_finder import program_store
 
 load_dotenv()
 
@@ -65,6 +68,10 @@ async def lifespan(app: FastAPI):
     fields_file = os.getenv("FIELDS_FILE", "data/fields.yaml")
     store.load(fields_file)
     log.info("kb_loaded", path=fields_file, count=len(store))
+
+    programs_file = os.getenv("PROGRAMS_FILE", "data/college_programs.yaml")
+    program_store.load(programs_file)
+    log.info("programs_loaded", path=programs_file, count=len(program_store))
 
     # 3. Phase 2: connect pgvector (skip when MOCK_EMBEDDINGS=1)
     app.state.db_pool = None
@@ -194,6 +201,22 @@ async def cache_clear():
     return {"cleared": cleared}
 
 
+@app.post("/api/course-search", response_model=CourseSearchResponse)
+@limiter.limit("10/minute")
+async def course_search(body: CourseSearchRequest, request: Request):
+    """Find college program options grouped by nearby, home-state, regional, and national tiers."""
+    request_id = str(uuid.uuid4())
+    result = await program_store.search(body, request_id)
+    log.info(
+        "course_search_ok",
+        request_id=request_id,
+        query=body.course_query,
+        location=result.location_used,
+        tiers=[{"tier": t.tier, "count": len(t.programs)} for t in result.tiers],
+    )
+    return result
+
+
 @app.post("/api/explore", response_model=ExploreResponse)
 @limiter.limit("20/minute")
 async def explore(body: ExploreRequest, request: Request):
@@ -302,7 +325,7 @@ async def direct(body: DirectRequest, request: Request):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "fields_loaded": len(store)}
+    return {"status": "ok", "fields_loaded": len(store), "programs_loaded": len(program_store)}
 
 
 # ── Static files (production — React build) ───────────────────────────────────

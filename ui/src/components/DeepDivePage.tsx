@@ -8,16 +8,18 @@ interface DeepDivePageProps {
 }
 
 export default function DeepDivePage({ fieldId, onBack }: DeepDivePageProps) {
+  return <DeepDiveContent key={fieldId} fieldId={fieldId} onBack={onBack} />;
+}
+
+function DeepDiveContent({ fieldId, onBack }: DeepDivePageProps) {
   const [data, setData] = useState<DirectResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    setData(null);
-
+    let ignore = false;
     fetchDeepDive(fieldId).then((result) => {
+      if (ignore) return;
       setLoading(false);
       if (result.ok) {
         setData(result.data);
@@ -25,6 +27,10 @@ export default function DeepDivePage({ fieldId, onBack }: DeepDivePageProps) {
         setError(result.message);
       }
     });
+
+    return () => {
+      ignore = true;
+    };
   }, [fieldId]);
 
   if (loading) {
