@@ -5,8 +5,9 @@ import os
 from typing import Any, TypedDict
 
 import structlog
-from anthropic import AsyncAnthropic
 from langgraph.graph import END, StateGraph
+
+from app.llm import complete
 
 log = structlog.get_logger()
 
@@ -35,30 +36,21 @@ def _user_text(state: ExploreGraphState) -> str:
 async def intake_node(state: ExploreGraphState) -> dict:
     """Parse initial interests from the user's first message."""
     raw = _user_text(state)
-    client = AsyncAnthropic()
+    text = await complete(
+        "Extract a concise list of the student's stated interests, hobbies, or strengths "
+        "from this message. Return only a JSON array of short phrases, e.g. "
+        '["building things", "math", "helping people"]. No other text.\n\n'
+        f"<user_interest>{raw}</user_interest>",
+        max_tokens=512,
+    )
     try:
-        response = await client.messages.create(
-            model=_MODEL,
-            max_tokens=512,
-            messages=[
-                {
-                    "role": "user",
-                    "content": (
-                        "Extract a concise list of the student's stated interests, "
-                        "hobbies, or strengths from this message. Return only a "
-                        "JSON array of short phrases, e.g. [\"building things\", "
-                        "\"math\", \"helping people\"]. No other text.\n\n"
-                        f"<user_interest>{raw}</user_interest>"
-                    ),
-                }
-            ],
-        )
         import json
-        interests = json.loads(response.content[0].text.strip())
+        cleaned = (text or "").strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        interests = json.loads(cleaned)
+        if not isinstance(interests, list):
+            raise ValueError
     except Exception:
         interests = [raw[:200]]
-    finally:
-        await client.close()
 
     return {
         "user_interests": interests,
@@ -74,31 +66,15 @@ async def clarify_node(state: ExploreGraphState) -> dict:
     if turns >= _MAX_CLARIFY or len(interests) >= 3:
         return {"status": "recommend"}
 
-    client = AsyncAnthropic()
-    try:
-        response = await client.messages.create(
-            model=_MODEL,
-            max_tokens=256,
-            system=(
-                "You help high school students discover STEM careers. "
-                "Ask one short, friendly follow-up question to better understand "
-                "their interests. Do not list options. One question only."
-            ),
-            messages=[
-                {
-                    "role": "user",
-                    "content": (
-                        f"Student interests so far: {', '.join(interests)}.\n"
-                        "Ask one clarifying question."
-                    ),
-                }
-            ],
-        )
-        reply = response.content[0].text.strip()
-    except Exception:
-        reply = "What subjects do you enjoy most in school?"
-    finally:
-        await client.close()
+    reply = await complete(
+        f"Student interests so far: {', '.join(interests)}.\nAsk one clarifying question.",
+        system=(
+            "You help high school students discover STEM careers. "
+            "Ask one short, friendly follow-up question to better understand "
+            "their interests. Do not list options. One question only."
+        ),
+        max_tokens=256,
+    ) or "What subjects do you enjoy most in school?"
 
     return {
         "messages": state.get("messages", []) + [{"role": "assistant", "content": reply}],
@@ -135,36 +111,24 @@ async def recommend_node(state: ExploreGraphState) -> dict:
             })
 
     field_names = [r["name"] for r in recommended[:3]]
-    client = AsyncAnthropic()
     try:
-        response = await client.messages.create(
-            model=_MODEL,
-            max_tokens=512,
+        reply = await complete(
+            f"A student with these interests: {', '.join(interests)}.\n"
+            f"Based on their profile, these STEM fields match best: {', '.join(field_names)}.\n"
+            "Write a friendly explanation of why these fields fit them. Mention each field by name.",
             system=(
                 "You help high school students discover STEM careers. "
                 "Be warm, encouraging, and specific. 3-4 sentences max."
             ),
-            messages=[
-                {
-                    "role": "user",
-                    "content": (
-                        f"A student with these interests: {', '.join(interests)}.\n"
-                        f"Based on their profile, these STEM fields match best: "
-                        f"{', '.join(field_names)}.\n"
-                        "Write a friendly explanation of why these fields fit them. "
-                        "Mention each field by name."
-                    ),
-                }
-            ],
+            max_tokens=512,
         )
-        reply = response.content[0].text.strip()
+        if not reply:
+            raise ValueError("empty reply")
     except Exception:
         reply = (
             f"Based on your interests, I think you'd enjoy exploring: "
             f"{', '.join(field_names)}. Each of these fields matches what you described!"
         )
-    finally:
-        await client.close()
 
     for r in recommended:
         r["reason"] = reply

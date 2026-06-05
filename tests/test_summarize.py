@@ -52,12 +52,12 @@ class TestSummaryCache:
         monkeypatch.delenv("MOCK_CLAUDE", raising=False)
         call_count = 0
 
-        async def fake_claude(prompt, request_id):
+        async def fake_claude(*args, **kwargs):
             nonlocal call_count
             call_count += 1
             return "A genuine summary."
 
-        with patch.object(summarize_mod, "_call_claude", fake_claude):
+        with patch("app.llm.complete", fake_claude):
             r1 = await generate_summary([FIELD_A, FIELD_B], "req-1")
             r2 = await generate_summary([FIELD_A, FIELD_B], "req-2")
 
@@ -68,12 +68,12 @@ class TestSummaryCache:
         monkeypatch.delenv("MOCK_CLAUDE", raising=False)
         call_count = 0
 
-        async def fake_claude(prompt, request_id):
+        async def fake_claude(*args, **kwargs):
             nonlocal call_count
             call_count += 1
             return "Summary."
 
-        with patch.object(summarize_mod, "_call_claude", fake_claude):
+        with patch("app.llm.complete", fake_claude):
             await generate_summary([FIELD_A, FIELD_B], "req-1")
             await generate_summary([FIELD_B, FIELD_A], "req-2")  # reversed order
 
@@ -84,12 +84,12 @@ class TestSummaryCache:
         call_count = 0
         FIELD_C = make_field("data-science", "Data Science")
 
-        async def fake_claude(prompt, request_id):
+        async def fake_claude(*args, **kwargs):
             nonlocal call_count
             call_count += 1
             return f"Summary {call_count}."
 
-        with patch.object(summarize_mod, "_call_claude", fake_claude):
+        with patch("app.llm.complete", fake_claude):
             await generate_summary([FIELD_A, FIELD_B], "req-1")
             await generate_summary([FIELD_A, FIELD_C], "req-2")
 
@@ -99,12 +99,12 @@ class TestSummaryCache:
         monkeypatch.delenv("MOCK_CLAUDE", raising=False)
         call_count = 0
 
-        async def fake_claude(prompt, request_id):
+        async def fake_claude(*args, **kwargs):
             nonlocal call_count
             call_count += 1
             return "Summary."
 
-        with patch.object(summarize_mod, "_call_claude", fake_claude):
+        with patch("app.llm.complete", fake_claude):
             await generate_summary([FIELD_A, FIELD_B], "req-1")
             cleared = clear_cache()
             await generate_summary([FIELD_A, FIELD_B], "req-2")
@@ -120,10 +120,10 @@ class TestClaudeErrors:
         monkeypatch.delenv("MOCK_CLAUDE", raising=False)
         import anthropic
 
-        async def returning_none(prompt, request_id):
+        async def returning_none(*args, **kwargs):
             return None  # what _call_claude returns on timeout
 
-        with patch.object(summarize_mod, "_call_claude", returning_none):
+        with patch("app.llm.complete", returning_none):
             result = await generate_summary([FIELD_A], "req-1")
 
         assert result is None
@@ -131,10 +131,10 @@ class TestClaudeErrors:
     async def test_auth_error_returns_none(self, monkeypatch):
         monkeypatch.delenv("MOCK_CLAUDE", raising=False)
 
-        async def returning_none(prompt, request_id):
+        async def returning_none(*args, **kwargs):
             return None  # what _call_claude returns on AuthenticationError
 
-        with patch.object(summarize_mod, "_call_claude", returning_none):
+        with patch("app.llm.complete", returning_none):
             result = await generate_summary([FIELD_A], "req-1")
 
         assert result is None
@@ -144,12 +144,12 @@ class TestClaudeErrors:
         monkeypatch.delenv("MOCK_CLAUDE", raising=False)
         call_count = 0
 
-        async def returning_none(prompt, request_id):
+        async def returning_none(*args, **kwargs):
             nonlocal call_count
             call_count += 1
             return None
 
-        with patch.object(summarize_mod, "_call_claude", returning_none):
+        with patch("app.llm.complete", returning_none):
             r1 = await generate_summary([FIELD_A, FIELD_B], "req-1")
             r2 = await generate_summary([FIELD_A, FIELD_B], "req-2")
 
@@ -164,10 +164,10 @@ class TestDebugPrompts:
         monkeypatch.delenv("MOCK_CLAUDE", raising=False)
         monkeypatch.setenv("DEBUG_PROMPTS", "1")
 
-        async def fake_claude(prompt, request_id):
+        async def fake_claude(*args, **kwargs):
             return "Summary."
 
-        with patch.object(summarize_mod, "_call_claude", fake_claude):
+        with patch("app.llm.complete", fake_claude):
             with patch.object(summarize_mod, "_write_prompt_log") as mock_write:
                 await generate_summary([FIELD_A], "req-debug")
                 mock_write.assert_called_once()
@@ -179,10 +179,10 @@ class TestDebugPrompts:
         monkeypatch.delenv("MOCK_CLAUDE", raising=False)
         monkeypatch.delenv("DEBUG_PROMPTS", raising=False)
 
-        async def fake_claude(prompt, request_id):
+        async def fake_claude(*args, **kwargs):
             return "Summary."
 
-        with patch.object(summarize_mod, "_call_claude", fake_claude):
+        with patch("app.llm.complete", fake_claude):
             with patch.object(summarize_mod, "_write_prompt_log") as mock_write:
                 await generate_summary([FIELD_A], "req-nodebug")
                 mock_write.assert_not_called()

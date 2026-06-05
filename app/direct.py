@@ -29,11 +29,12 @@ async def generate_deep_dive(field_id: str) -> DirectResponse | None:
     if field is None:
         return None
 
-    if os.getenv("MOCK_CLAUDE") == "1":
+    from app.llm import complete, mock_llm
+
+    if mock_llm():
         sections = [DeepDiveSection(title=title, content=_MOCK_CONTENT) for title, _ in _SECTIONS]
         return DirectResponse(field_id=field.field_id, name=field.name, sections=sections)
 
-    client = AsyncAnthropic()
     field_context = (
         f"Field: {field.name}\n"
         f"Plain English: {field.plain_english}\n"
@@ -41,27 +42,18 @@ async def generate_deep_dive(field_id: str) -> DirectResponse | None:
         f"Personality fit: {field.personality_fit.fit_description}\n"
         f"Key courses: {', '.join(field.undergrad_path.key_courses[:5])}\n"
     )
+    system = "You are a knowledgeable, honest career counselor for high school students. Be specific and direct."
 
     sections: list[DeepDiveSection] = []
     try:
         for title, instruction in _SECTIONS:
-            response = await client.messages.create(
-                model=_MODEL,
-                max_tokens=300,
-                system="You are a knowledgeable, honest career counselor for high school students. Be specific and direct.",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": (
-                            f"{field_context}\n\n"
-                            f"Section: {title}\n"
-                            f"Instructions: {instruction}\n\n"
-                            "Write only the section content. No headers, no markdown."
-                        ),
-                    }
-                ],
+            content = await complete(
+                f"{field_context}\n\nSection: {title}\nInstructions: {instruction}\n\n"
+                "Write only the section content. No headers, no markdown.",
+                system=system, max_tokens=300,
             )
-            sections.append(DeepDiveSection(title=title, content=response.content[0].text.strip()))
+            if content:
+                sections.append(DeepDiveSection(title=title, content=content))
 
         log.info("deep_dive_ok", field_id=field_id, sections=len(sections))
         return DirectResponse(field_id=field.field_id, name=field.name, sections=sections)

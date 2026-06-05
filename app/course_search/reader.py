@@ -239,7 +239,9 @@ async def extract_program_facts(
     MOCK_CLAUDE=1 returns a deterministic structured result (offline dev/tests).
     DEBUG_PROMPTS=1 writes the full prompt to logs/prompts/{request_id}-read.txt.
     """
-    if os.getenv("MOCK_CLAUDE") == "1":
+    from app.llm import complete, mock_llm
+
+    if mock_llm():
         return _mock_extraction(plan)
 
     prompt = _EXTRACTION_PROMPT.format(
@@ -249,7 +251,7 @@ async def extract_program_facts(
     if os.getenv("DEBUG_PROMPTS"):
         _write_prompt_log(request_id, prompt)
 
-    raw = await _call_claude(prompt, request_id)
+    raw = await complete(prompt, max_tokens=1024)
     if raw is None:
         return None
     return _parse_extraction_json(raw)

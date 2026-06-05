@@ -108,6 +108,7 @@ async def _client() -> AsyncClient:
 
 class TestEndToEndProvider:
     async def test_course_search_uses_claude_backend(self, monkeypatch):
+        monkeypatch.setenv("COURSE_SEARCH_MODE", "live")
         monkeypatch.setenv("SEARCH_PROVIDER", "claude")
         monkeypatch.setenv("MOCK_CLAUDE", "1")
         program_store._service.configure_live_only()
