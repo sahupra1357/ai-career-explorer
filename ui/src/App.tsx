@@ -6,8 +6,9 @@ import ComparisonResult from './components/ComparisonResult';
 import ErrorCard from './components/ErrorCard';
 import ChatInterface from './components/ChatInterface';
 import DeepDivePage from './components/DeepDivePage';
+import CourseFinder from './components/CourseFinder';
 
-type Tab = 'compare' | 'explore' | 'deepdive';
+type Tab = 'course' | 'compare' | 'explore' | 'deepdive';
 
 type CompareState =
   | { phase: 'idle' }
@@ -16,7 +17,7 @@ type CompareState =
   | { phase: 'error'; status: number; error: CompareError | null; message?: string };
 
 export default function App() {
-  const [tab, setTab] = useState<Tab>('compare');
+  const [tab, setTab] = useState<Tab>('course');
   const [deepDiveFieldId, setDeepDiveFieldId] = useState<string | null>(null);
 
   // Compare tab state
@@ -68,6 +69,7 @@ export default function App() {
   }
 
   const tabs: { id: Tab; label: string }[] = [
+    { id: 'course', label: 'Course Finder' },
     { id: 'compare', label: 'Compare' },
     { id: 'explore', label: 'Explore' },
     { id: 'deepdive', label: 'Deep Dive' },
@@ -81,7 +83,7 @@ export default function App() {
         <header className="text-center mb-8">
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">STEM Career Explorer</h1>
           <p className="mt-2 text-slate-500 text-base">
-            Discover STEM fields that match your interests — built for high school students.
+            Compare paths, inspect college programs, and shortlist evidence-backed options.
           </p>
         </header>
 
@@ -101,6 +103,9 @@ export default function App() {
             </button>
           ))}
         </div>
+
+        {/* Course Finder tab */}
+        {tab === 'course' && <CourseFinder />}
 
         {/* Compare tab */}
         {tab === 'compare' && (

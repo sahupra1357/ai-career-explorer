@@ -1,0 +1,284 @@
+programs:
+  - program_id: berkeley-computer-science
+    course_name: Computer Science
+    aliases: [cs, software engineering, computing]
+    college_name: University of California, Berkeley
+    city: Berkeley
+    state: CA
+    lat: 37.8719
+    lon: -122.2585
+    ranking_score: 98
+    degree: BA Computer Science / BS Electrical Engineering and Computer Sciences
+    delivery: On campus
+    overview: Berkeley offers computer science through Letters & Science and EECS, with strong foundations in programming, discrete math, systems, theory, AI, and upper-division electives.
+    curriculum_summary: Students build from programming and mathematical foundations into architecture, algorithms, systems, probability, and advanced electives such as AI, databases, security, graphics, and software engineering.
+    semester_plan:
+      - term: Year 1
+        focus: Programming and math foundation
+        courses: [Structure and Interpretation of Computer Programs, Data Structures, Calculus, Reading and Composition]
+      - term: Year 2
+        focus: Core theory and systems preparation
+        courses: [Discrete Mathematics and Probability, Computer Architecture, Linear Algebra, Lower-division breadth]
+      - term: Year 3
+        focus: Upper-division CS depth
+        courses: [Algorithms, Operating Systems or Databases, Technical electives, Breadth requirements]
+      - term: Year 4
+        focus: Specialization and capstone-level work
+        courses: [Advanced CS electives, Project or research options, Remaining degree requirements]
+    required_papers: [High school transcript, UC application essays, Activities list, Test scores if applicable under current UC policy]
+    admission_factors: [A-G course completion, GPA and course rigor, Math readiness, Evidence of sustained technical interest, Contextual review]
+    fees:
+      in_state_tuition:
+        amount: 15900
+        label: Estimated annual systemwide tuition and fees for California residents
+      out_of_state_tuition:
+        amount: 50400
+        label: Estimated annual tuition and fees for nonresidents
+      mandatory_fees:
+        amount: 1500
+        label: Campus fees vary by year
+      notes: Confirm the current annual cost of attendance on Berkeley's financial aid site before applying.
+      source_url: https://financialaid.berkeley.edu/how-aid-works/student-budgets-cost-of-attendance/
+    decision_factors: [Excellent national reputation, Highly competitive admission, Strong research ecosystem, High Bay Area living costs]
+    sources:
+      - label: Berkeley EECS undergraduate degree information
+        url: https://eecs.berkeley.edu/academics/undergraduate/
+      - label: Berkeley Computer Science major information
+        url: https://ls.berkeley.edu/advising/academic-progress/major-requirements/computer-science
+      - label: Berkeley cost of attendance
+        url: https://financialaid.berkeley.edu/how-aid-works/student-budgets-cost-of-attendance/
+
+  - program_id: washington-computer-science
+    course_name: Computer Science
+    aliases: [cs, computing, software engineering]
+    college_name: University of Washington
+    city: Seattle
+    state: WA
+    lat: 47.6553
+    lon: -122.3035
+    ranking_score: 95
+    degree: BS Computer Science
+    delivery: On campus
+    overview: UW's Paul G. Allen School emphasizes software, systems, data, AI, human-computer interaction, security, and computing for society.
+    curriculum_summary: The program combines programming, data structures, discrete math, hardware/software systems, theory, and advanced CSE electives.
+    semester_plan:
+      - term: Year 1
+        focus: Entry programming and prerequisites
+        courses: [Intro programming sequence, Calculus, English composition, Natural science]
+      - term: Year 2
+        focus: Core CSE preparation
+        courses: [Data structures, Discrete structures, Systems foundations, Statistics or probability]
+      - term: Year 3
+        focus: Major depth
+        courses: [Algorithms, Software design, Hardware/software interface, CSE electives]
+      - term: Year 4
+        focus: Advanced electives and project work
+        courses: [Advanced CSE electives, Capstone or senior project options, Remaining general education]
+    required_papers: [Coalition/Common App materials, High school transcript, Personal statement, Activities section]
+    admission_factors: [Direct-to-major competitiveness, Math and science rigor, Programming exposure, Community impact and context]
+    fees:
+      in_state_tuition:
+        amount: 13000
+        label: Estimated annual resident undergraduate tuition and fees
+      out_of_state_tuition:
+        amount: 43000
+        label: Estimated annual nonresident undergraduate tuition and fees
+      mandatory_fees:
+        amount: 1400
+        label: Mandatory fees estimate
+      notes: UW publishes current undergraduate tuition and cost of attendance by residency.
+      source_url: https://admit.washington.edu/costs/coa/
+    decision_factors: [Strong Pacific Northwest tech pipeline, Competitive direct admission, Excellent CS breadth, Seattle cost of living]
+    sources:
+      - label: Allen School undergraduate academics
+        url: https://www.cs.washington.edu/academics/ugrad
+      - label: UW cost of attendance
+        url: https://admit.washington.edu/costs/coa/
+
+  - program_id: uiuc-computer-science
+    course_name: Computer Science
+    aliases: [cs, computing, software engineering]
+    college_name: University of Illinois Urbana-Champaign
+    city: Urbana
+    state: IL
+    lat: 40.1020
+    lon: -88.2272
+    ranking_score: 96
+    degree: BS Computer Science
+    delivery: On campus
+    overview: UIUC has a nationally recognized CS program with depth in algorithms, systems, AI, programming languages, databases, security, and scientific computing.
+    curriculum_summary: Students complete programming, discrete structures, data structures, architecture, algorithms, theory, systems, and advanced technical electives.
+    semester_plan:
+      - term: Year 1
+        focus: Programming, calculus, and composition
+        courses: [Intro computing, Data structures, Calculus, Composition]
+      - term: Year 2
+        focus: CS core and math maturity
+        courses: [Discrete structures, Computer architecture, Linear algebra, Probability or statistics]
+      - term: Year 3
+        focus: Systems, theory, and electives
+        courses: [Algorithms, Programming languages or systems, Technical electives, Science requirements]
+      - term: Year 4
+        focus: Advanced depth and graduation requirements
+        courses: [Advanced CS electives, Team project options, Remaining general education]
+    required_papers: [Application, High school transcript, Essays, Activities and honors, Optional test scores if accepted]
+    admission_factors: [Academic rigor, Math readiness, CS interest evidence, Major competitiveness]
+    fees:
+      in_state_tuition:
+        amount: 18000
+        label: Estimated annual resident tuition and fees
+      out_of_state_tuition:
+        amount: 39000
+        label: Estimated annual nonresident tuition and fees
+      mandatory_fees:
+        amount: 4500
+        label: Estimated fees vary by college and year
+      notes: UIUC tuition varies by college, residency, and entering cohort.
+      source_url: https://cost.illinois.edu/
+    decision_factors: [Top-tier CS reputation, Strong recruiting, Large public university scale, Competitive entry]
+    sources:
+      - label: UIUC CS undergraduate programs
+        url: https://siebelschool.illinois.edu/academics/undergraduate
+      - label: UIUC cost information
+        url: https://cost.illinois.edu/
+
+  - program_id: gatech-biomedical-engineering
+    course_name: Biomedical Engineering
+    aliases: [bme, bioengineering, medical engineering]
+    college_name: Georgia Institute of Technology
+    city: Atlanta
+    state: GA
+    lat: 33.7756
+    lon: -84.3963
+    ranking_score: 97
+    degree: BS Biomedical Engineering
+    delivery: On campus
+    overview: Georgia Tech's biomedical engineering program blends engineering design, biology, physiology, math, computing, and medical technology problem-solving.
+    curriculum_summary: The path moves from calculus, chemistry, biology, physics, and engineering fundamentals into physiology, biomechanics, bioinstrumentation, systems physiology, design, and technical electives.
+    semester_plan:
+      - term: Year 1
+        focus: Science, math, and engineering base
+        courses: [Calculus, Chemistry, Biology, Physics, Intro engineering]
+      - term: Year 2
+        focus: Engineering and life-science core
+        courses: [Differential equations, Organic chemistry, Physiology, Circuits or computing, BME fundamentals]
+      - term: Year 3
+        focus: Biomedical systems and design
+        courses: [Biomechanics, Bioinstrumentation, Systems physiology, Statistics, Design studio]
+      - term: Year 4
+        focus: Capstone and specialization
+        courses: [BME capstone design, Technical electives, Ethics or policy, Remaining degree requirements]
+    required_papers: [Application, Transcript, Essays, Activities, Letters only if requested by the application process]
+    admission_factors: [Advanced math and lab science rigor, Engineering motivation, Design or research exposure, Overall academic competitiveness]
+    fees:
+      in_state_tuition:
+        amount: 13000
+        label: Estimated annual resident tuition and mandatory fees
+      out_of_state_tuition:
+        amount: 35000
+        label: Estimated annual nonresident tuition and mandatory fees
+      mandatory_fees:
+        amount: 2600
+        label: Mandatory fees estimate
+      notes: Georgia Tech publishes current undergraduate tuition and institute fees by residency.
+      source_url: https://finaid.gatech.edu/costs/undergraduate-costs/
+    decision_factors: [Elite BME reputation, Strong engineering design culture, Atlanta healthcare ecosystem, Rigorous workload]
+    sources:
+      - label: Georgia Tech BME undergraduate program
+        url: https://bme.gatech.edu/bme/undergraduate-program
+      - label: Georgia Tech undergraduate costs
+        url: https://finaid.gatech.edu/costs/undergraduate-costs/
+
+  - program_id: jhu-biomedical-engineering
+    course_name: Biomedical Engineering
+    aliases: [bme, bioengineering, medical engineering]
+    college_name: Johns Hopkins University
+    city: Baltimore
+    state: MD
+    lat: 39.3299
+    lon: -76.6205
+    ranking_score: 99
+    degree: BS Biomedical Engineering
+    delivery: On campus
+    overview: Johns Hopkins BME is research-intensive and closely connected to medicine, biology, engineering design, computation, and clinical problem-solving.
+    curriculum_summary: Students complete math, physics, chemistry, biology, computing, BME modeling, physiology, design, lab, and focus-area electives.
+    semester_plan:
+      - term: Year 1
+        focus: Math, science, and design entry
+        courses: [Calculus, Physics, Chemistry, Biology, Intro BME design]
+      - term: Year 2
+        focus: Core BME tools
+        courses: [Linear algebra, Computing, Systems and signals, Physiology, BME modeling]
+      - term: Year 3
+        focus: Focus-area depth
+        courses: [BME design, Laboratory methods, Focus-area electives, Statistics]
+      - term: Year 4
+        focus: Design team and specialization
+        courses: [Design team project, Advanced electives, Research or clinical translation options]
+    required_papers: [Application, Transcript, Counselor report, Teacher recommendations, Essays]
+    admission_factors: [Exceptional STEM rigor, Research/design curiosity, Writing quality, Fit with BME intensity]
+    fees:
+      in_state_tuition:
+        amount: 66000
+        label: Private university tuition estimate
+      out_of_state_tuition:
+        amount: 66000
+        label: Private university tuition estimate
+      mandatory_fees:
+        amount: 0
+        label: Fees vary by year
+      notes: Johns Hopkins is private; use the current cost-of-attendance page and net price calculator for family-specific cost.
+      source_url: https://finaid.jhu.edu/undergraduate-aid/undergraduate-cost-of-attendance/
+    decision_factors: [World-class BME and medicine connection, Heavy research opportunity, Very selective admission, High sticker price before aid]
+    sources:
+      - label: Johns Hopkins BME undergraduate program
+        url: https://www.bme.jhu.edu/academics/undergraduate/
+      - label: Johns Hopkins cost of attendance
+        url: https://finaid.jhu.edu/undergraduate-aid/undergraduate-cost-of-attendance/
+
+  - program_id: umich-biomedical-engineering
+    course_name: Biomedical Engineering
+    aliases: [bme, bioengineering, medical engineering]
+    college_name: University of Michigan
+    city: Ann Arbor
+    state: MI
+    lat: 42.2780
+    lon: -83.7382
+    ranking_score: 94
+    degree: BS Biomedical Engineering
+    delivery: On campus
+    overview: Michigan BME combines engineering, medicine, design, and research, with access to a major public research university and medical center.
+    curriculum_summary: The curriculum uses engineering fundamentals, biology, physiology, instrumentation, biomechanics, design, labs, and technical electives.
+    semester_plan:
+      - term: Year 1
+        focus: Calculus, science, and first engineering courses
+        courses: [Calculus, Chemistry, Physics, Engineering 100, Writing]
+      - term: Year 2
+        focus: Engineering fundamentals and biology
+        courses: [Differential equations, Biology, Circuits or computing, Mechanics, BME core]
+      - term: Year 3
+        focus: BME analysis, labs, and design
+        courses: [Physiology, Biomechanics, Instrumentation, Statistics, BME lab]
+      - term: Year 4
+        focus: Capstone and concentration
+        courses: [Senior design, Technical electives, Professional development, Remaining requirements]
+    required_papers: [Common App, Transcript, Essays, Activities, Recommendations]
+    admission_factors: [Math and science rigor, Engineering fit, Academic trend, Evidence of initiative]
+    fees:
+      in_state_tuition:
+        amount: 18000
+        label: Estimated annual Michigan resident tuition and fees
+      out_of_state_tuition:
+        amount: 62000
+        label: Estimated annual nonresident tuition and fees
+      mandatory_fees:
+        amount: 400
+        label: Fees estimate
+      notes: Michigan costs vary by residency, school/college, and year in program.
+      source_url: https://finaid.umich.edu/getting-started/estimating-costs
+    decision_factors: [Strong engineering and medical center, Broad campus options, High out-of-state cost, Large public university environment]
+    sources:
+      - label: Michigan BME undergraduate program
+        url: https://bme.umich.edu/academics/undergraduate/
+      - label: Michigan cost estimates
+        url: https://finaid.umich.edu/getting-started/estimating-costs

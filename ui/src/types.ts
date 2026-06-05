@@ -103,3 +103,72 @@ export interface DirectResponse {
   name: string;
   sections: DeepDiveSection[];
 }
+
+// ── Phase 3: Course Finder ───────────────────────────────────────────────────
+
+export interface MoneyAmount {
+  amount: number;
+  currency: 'USD';
+  label: string;
+}
+
+export interface ProgramSource {
+  label: string;
+  url: string;
+}
+
+export interface SemesterPlan {
+  term: string;
+  focus: string;
+  courses: string[];
+}
+
+export interface ProgramFees {
+  in_state_tuition: MoneyAmount | null;
+  out_of_state_tuition: MoneyAmount | null;
+  mandatory_fees: MoneyAmount | null;
+  notes: string;
+  source_url: string;
+}
+
+export interface CollegeProgram {
+  program_id: string;
+  course_name: string;
+  aliases: string[];
+  college_name: string;
+  city: string;
+  state: string;
+  lat: number;
+  lon: number;
+  ranking_score: number;
+  degree: string;
+  delivery: string;
+  overview: string;
+  curriculum_summary: string;
+  semester_plan: SemesterPlan[];
+  required_papers: string[];
+  admission_factors: string[];
+  fees: ProgramFees;
+  decision_factors: string[];
+  sources: ProgramSource[];
+}
+
+export interface RankedProgram {
+  program: CollegeProgram;
+  distance_miles: number | null;
+  match_reason: string;
+}
+
+export interface ProgramTier {
+  tier: 'nearby' | 'home_state' | 'nearby_home_states' | 'best_usa';
+  title: string;
+  programs: RankedProgram[];
+}
+
+export interface CourseSearchResponse {
+  request_id: string;
+  query: string;
+  location_used: string;
+  tiers: ProgramTier[];
+  guidance: string[];
+}

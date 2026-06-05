@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from datetime import date, datetime
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -151,3 +152,158 @@ class DirectResponse(BaseModel):
     field_id: str
     name: str
     sections: list[DeepDiveSection]
+
+
+# ── Phase 3: Course finder / college admissions research ─────────────────────
+
+class MoneyAmount(BaseModel):
+    amount: int
+    currency: Literal["USD"] = "USD"
+    label: str
+
+
+class ProgramSource(BaseModel):
+    label: str
+    url: str
+
+
+# Provenance per DESIGN.md §6 — every aggregated claim can point back to a real source.
+ClaimType = Literal[
+    "identity", "admissions", "curriculum", "fees", "aid",
+    "housing", "outcomes", "ranking", "general",
+]
+
+# Honest-gap markers per DESIGN.md §6 (data_quality_flags).
+DataQualityFlag = Literal[
+    "missing_curriculum_source",
+    "missing_fee_source",
+    "fee_estimate_only",
+    "catalog_page_not_found",
+    "unofficial_ranking_source",
+    "program_name_ambiguous",
+    "requires_manual_review",
+]
+
+
+class ProgramEvidence(BaseModel):
+    claim_type: ClaimType
+    claim: str
+    source_url: str
+    source_label: str
+    as_of: date
+    confidence: Literal["high", "medium", "low"] = "medium"
+
+
+class RankingLink(BaseModel):
+    """A pointer to verify a college's ranking on an external site.
+
+    We do NOT reproduce proprietary ranking values (e.g. U.S. News numbers) — only a link
+    the user can open to check. Keeps us compliant with those sites' terms.
+    """
+    name: str
+    url: str
+    note: str = "Ranking value not reproduced — open to verify on the source."
+
+
+class LicensedRanking(BaseModel):
+    """An actual ranking *value* from a licensed provider (e.g. U.S. News).
+
+    Only ever populated when RANKINGS_LICENSED=1 — i.e. the operator holds a data licence.
+    Off by default, so no proprietary rank value is emitted without a licence.
+    """
+    provider: str
+    rank: int
+    list_name: Optional[str] = None
+    year: int
+    source_url: Optional[str] = None
+
+
+class SemesterPlan(BaseModel):
+    term: str
+    focus: str
+    courses: list[str]
+
+
+class ProgramFees(BaseModel):
+    in_state_tuition: Optional[MoneyAmount] = None
+    out_of_state_tuition: Optional[MoneyAmount] = None
+    mandatory_fees: Optional[MoneyAmount] = None
+    notes: str
+    source_url: str
+
+
+class CollegeProgram(BaseModel):
+    program_id: str
+    course_name: str
+    aliases: list[str] = []
+    college_name: str
+    city: str
+    state: str = Field(min_length=2, max_length=2)
+    lat: float
+    lon: float
+    ranking_score: int = Field(ge=1, le=100)
+    degree: str
+    delivery: str = "On campus"
+    overview: str
+    curriculum_summary: str
+    semester_plan: list[SemesterPlan]
+    required_papers: list[str]
+    admission_factors: list[str]
+    fees: ProgramFees
+    decision_factors: list[str]
+    sources: list[ProgramSource]
+    # Provenance (additive, optional) — populated by the Phase 3 page reader.
+    evidence: list[ProgramEvidence] = []
+    data_quality_flags: list[DataQualityFlag] = []
+    last_checked_at: Optional[datetime] = None
+    # Ranking: verify-links only (no proprietary values copied) + see ranking_score
+    # for our transparent composite from open Scorecard outcomes.
+    rankings: list[RankingLink] = []
+    # Carnegie Classification (free, official prestige tier) — shown when available.
+    carnegie_classification: Optional[str] = None
+    # Licensed provider ranks (e.g. U.S. News) — populated ONLY when RANKINGS_LICENSED=1.
+    licensed_rankings: list[LicensedRanking] = []
+
+
+class CourseSearchRequest(BaseModel):
+    course_query: str = Field(min_length=2, max_length=120)
+    city: Optional[str] = Field(default=None, max_length=80)
+    state: Optional[str] = Field(default=None, max_length=2)
+    home_state: Optional[str] = Field(default=None, max_length=2)
+
+    @field_validator("course_query")
+    @classmethod
+    def clean_course_query(cls, v: str) -> str:
+        return v.strip()
+
+    @field_validator("state", "home_state")
+    @classmethod
+    def normalize_state(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return None
+        return v.strip().upper()
+
+    @field_validator("city")
+    @classmethod
+    def clean_city(cls, v: Optional[str]) -> Optional[str]:
+        return v.strip() if v else None
+
+
+class RankedProgram(BaseModel):
+    program: CollegeProgram
+    distance_miles: Optional[float] = None
+    match_reason: str
+
+
+class ProgramTier(BaseModel):
+    tier: Literal["nearby", "home_state", "nearby_home_states", "best_usa"]
+    title: str
+    programs: list[RankedProgram]
+
+
+class CourseSearchResponse(BaseModel):
+    request_id: str
+    query: str
+    location_used: str
+    tiers: list[ProgramTier]
+    guidance: list[str]

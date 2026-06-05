@@ -1,0 +1,100 @@
+{
+  "_comment": "Seed/demo fixture mirroring the College Scorecard institution slice the offline ETL ingests. Real unitids + Scorecard school URLs; figures are approximate public values for the demo. Run `make build-kg` to replace with live Scorecard API data. NO figure here is shown to users without a source label and as_of year.",
+  "source": "College Scorecard (sample)",
+  "as_of": 2023,
+  "colleges": [
+    {
+      "unitid": 110635,
+      "name": "University of California-Berkeley",
+      "city": "Berkeley", "state": "CA", "lat": 37.8719, "lon": -122.2585,
+      "control": "Public", "level": "4-year", "url": "https://www.berkeley.edu",
+      "admission_rate": 0.11, "tuition_in_state": 15891, "tuition_out_state": 48465,
+      "avg_net_price": 18800, "grad_rate": 0.94, "median_earnings": 112000,
+      "carnegie": "R1: Doctoral Universities – Very High Research Activity", "carnegie_year": 2021,
+      "programs": [
+        {"cip": "11.07", "title": "Computer Science"},
+        {"cip": "30.70", "title": "Data Science"}
+      ]
+    },
+    {
+      "unitid": 110662,
+      "name": "University of California-Los Angeles",
+      "city": "Los Angeles", "state": "CA", "lat": 34.0689, "lon": -118.4452,
+      "control": "Public", "level": "4-year", "url": "https://www.ucla.edu",
+      "admission_rate": 0.09, "tuition_in_state": 13804, "tuition_out_state": 46326,
+      "avg_net_price": 16500, "grad_rate": 0.92, "median_earnings": 96000,
+      "programs": [
+        {"cip": "11.07", "title": "Computer Science"}
+      ]
+    },
+    {
+      "unitid": 236948,
+      "name": "University of Washington-Seattle Campus",
+      "city": "Seattle", "state": "WA", "lat": 47.6553, "lon": -122.3035,
+      "control": "Public", "level": "4-year", "url": "https://www.washington.edu",
+      "admission_rate": 0.48, "tuition_in_state": 12076, "tuition_out_state": 40740,
+      "avg_net_price": 11200, "grad_rate": 0.84, "median_earnings": 88000,
+      "programs": [
+        {"cip": "11.07", "title": "Computer Science"},
+        {"cip": "30.70", "title": "Data Science"}
+      ]
+    },
+    {
+      "unitid": 209542,
+      "name": "Oregon State University",
+      "city": "Corvallis", "state": "OR", "lat": 44.5638, "lon": -123.2794,
+      "control": "Public", "level": "4-year", "url": "https://oregonstate.edu",
+      "admission_rate": 0.83, "tuition_in_state": 12188, "tuition_out_state": 33053,
+      "avg_net_price": 18900, "grad_rate": 0.70, "median_earnings": 64000,
+      "programs": [
+        {"cip": "11.07", "title": "Computer Science"}
+      ]
+    },
+    {
+      "unitid": 182281,
+      "name": "University of Nevada-Reno",
+      "city": "Reno", "state": "NV", "lat": 39.5450, "lon": -119.8160,
+      "control": "Public", "level": "4-year", "url": "https://www.unr.edu",
+      "admission_rate": 0.88, "tuition_in_state": 8113, "tuition_out_state": 24187,
+      "avg_net_price": 14600, "grad_rate": 0.62, "median_earnings": 55000,
+      "programs": [
+        {"cip": "11.07", "title": "Computer Science and Engineering"}
+      ]
+    },
+    {
+      "unitid": 145637,
+      "name": "University of Illinois Urbana-Champaign",
+      "city": "Champaign", "state": "IL", "lat": 40.1020, "lon": -88.2272,
+      "control": "Public", "level": "4-year", "url": "https://illinois.edu",
+      "admission_rate": 0.45, "tuition_in_state": 17138, "tuition_out_state": 36068,
+      "avg_net_price": 18400, "grad_rate": 0.85, "median_earnings": 80000,
+      "programs": [
+        {"cip": "11.07", "title": "Computer Science"},
+        {"cip": "30.70", "title": "Data Science"}
+      ]
+    },
+    {
+      "unitid": 190150,
+      "name": "Columbia University in the City of New York",
+      "city": "New York", "state": "NY", "lat": 40.8075, "lon": -73.9626,
+      "control": "Private nonprofit", "level": "4-year", "url": "https://www.columbia.edu",
+      "admission_rate": 0.04, "tuition_in_state": 65524, "tuition_out_state": 65524,
+      "avg_net_price": 22600, "grad_rate": 0.96, "median_earnings": 105000,
+      "programs": [
+        {"cip": "11.07", "title": "Computer Science"}
+      ]
+    },
+    {
+      "unitid": 166683,
+      "name": "Massachusetts Institute of Technology",
+      "city": "Cambridge", "state": "MA", "lat": 42.3601, "lon": -71.0942,
+      "control": "Private nonprofit", "level": "4-year", "url": "https://www.mit.edu",
+      "admission_rate": 0.04, "tuition_in_state": 57986, "tuition_out_state": 57986,
+      "avg_net_price": 18900, "grad_rate": 0.97, "median_earnings": 124000,
+      "programs": [
+        {"cip": "11.07", "title": "Computer Science and Engineering"},
+        {"cip": "30.70", "title": "Data Science"}
+      ]
+    }
+  ]
+}
