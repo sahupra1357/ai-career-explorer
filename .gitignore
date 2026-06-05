@@ -10,3 +10,9 @@ node_modules/
 ui/dist/
 frontend/dist/
 frontend/.next/
+
+# Local scratch / non-repo working files
+steps.md
+userprompt.md
+tests/openaitest.py
+data/backups/
