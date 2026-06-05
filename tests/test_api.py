@@ -142,10 +142,10 @@ class TestCompareSuccess:
         monkeypatch.delenv("MOCK_CLAUDE", raising=False)
         clear_cache()
 
-        async def returning_none(prompt, request_id):
+        async def returning_none(*args, **kwargs):
             return None
 
-        with patch.object(summarize_mod, "_call_claude", returning_none):
+        with patch("app.llm.complete", returning_none):
             async with await client() as c:
                 r = await c.post("/api/compare", json={"fields": ["computer-science", "biomedical-engineering"]})
 
@@ -265,10 +265,10 @@ class TestCacheClear:
         )
         from app import summarize as summarize_mod
 
-        async def fake_claude(prompt, request_id):
+        async def fake_claude(*args, **kwargs):
             return "A real summary."
 
-        with patch.object(summarize_mod, "_call_claude", fake_claude):
+        with patch("app.llm.complete", fake_claude):
             async with await client() as c:
                 await c.post("/api/compare", json={"fields": ["computer-science", "biomedical-engineering"]})
                 r = await c.post("/api/cache/clear")
@@ -284,12 +284,12 @@ class TestCacheClear:
         from app import summarize as summarize_mod
         call_count = 0
 
-        async def counting_claude(prompt, request_id):
+        async def counting_claude(*args, **kwargs):
             nonlocal call_count
             call_count += 1
             return "Summary."
 
-        with patch.object(summarize_mod, "_call_claude", counting_claude):
+        with patch("app.llm.complete", counting_claude):
             async with await client() as c:
                 await c.post("/api/compare", json={"fields": ["computer-science", "biomedical-engineering"]})
                 await c.post("/api/cache/clear")

@@ -63,12 +63,14 @@ async def generate_summary(
       MOCK_CLAUDE=1     Return a static string without calling Claude.
       DEBUG_PROMPTS=1   Write the full prompt to logs/prompts/{request_id}.txt.
     """
+    from app.llm import complete, mock_llm
+
     field_ids = tuple(sorted(e["field_id"] for e in field_entries))
 
-    if os.getenv("MOCK_CLAUDE") == "1":
+    if mock_llm():
         return (
             f"[MOCK] Comparison of {', '.join(field_ids)}. "
-            "MOCK_CLAUDE is enabled — set MOCK_CLAUDE=0 in .env for real output."
+            "Mock LLM is enabled — unset MOCK_LLM / MOCK_CLAUDE in .env for real output."
         )
 
     if field_ids in _summary_cache:
@@ -80,7 +82,7 @@ async def generate_summary(
     if os.getenv("DEBUG_PROMPTS"):
         _write_prompt_log(request_id, prompt)
 
-    result = await _call_claude(prompt, request_id)
+    result = await complete(prompt, max_tokens=256)
     if result is not None:
         _summary_cache[field_ids] = result
     return result

@@ -64,6 +64,7 @@ async def client() -> AsyncClient:
 
 def _stub_no_live_results(monkeypatch) -> None:
     """Force live web discovery to return nothing so static-data tests stay deterministic."""
+    monkeypatch.setenv("COURSE_SEARCH_MODE", "fallback")  # deterministic service, not the agent
     monkeypatch.setenv("SEARCH_PROVIDER", "duckduckgo")  # use the keyless path we stub here
 
     async def empty_search(client, query):
@@ -114,6 +115,7 @@ class TestCourseSearch:
         assert program["sources"][0]["url"].startswith("https://")
 
     async def test_live_mode_uses_official_web_results(self, monkeypatch):
+        monkeypatch.setenv("COURSE_SEARCH_MODE", "live")
         monkeypatch.setenv("SEARCH_PROVIDER", "duckduckgo")
         program_store._service.configure_live_only()
 
@@ -156,6 +158,7 @@ class TestLivePageReader:
         )
 
     def _wire_live(self, monkeypatch):
+        monkeypatch.setenv("COURSE_SEARCH_MODE", "live")
         monkeypatch.setenv("COURSE_READ_PAGES", "1")
         monkeypatch.setenv("MOCK_CLAUDE", "1")
         monkeypatch.setenv("SEARCH_PROVIDER", "duckduckgo")
