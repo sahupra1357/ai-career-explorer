@@ -22,6 +22,7 @@ import structlog
 from app.models import CollegeProgram
 
 from .agent_llm import run_subagent_loop
+from .investigation_cache import get_investigation, save_investigation
 from .models import SearchPlan
 from .reader import (
     MAX_PAGE_CHARS,
@@ -116,6 +117,14 @@ async def investigate_college(program: CollegeProgram, plan: SearchPlan, request
     if not domain:
         return program
 
+    course_norm = program.course_name.lower().strip()
+    cached = await get_investigation(domain, course_norm)
+    if cached is not None:  # reuse a prior agent investigation (survives restarts)
+        url, findings = cached
+        log.info("subagent_cache_hit", college=program.college_name, page=url)
+        return _apply_extraction(program, findings, url,
+                                 source_label="Official program page", add_source=True)
+
     async with _semaphore():
         return await _run_agent(program, plan, domain, request_id)
 
@@ -140,6 +149,8 @@ async def _run_agent(program: CollegeProgram, plan: SearchPlan, domain: str, req
         log.info("subagent_no_report", request_id=request_id, college=program.college_name)
         return _flag_program(program, ["catalog_page_not_found"])
 
+    await save_investigation(domain, program.course_name.lower().strip(),
+                             report["program_page_url"], report)
     log.info("subagent_reported", request_id=request_id, college=program.college_name,
              page=report.get("program_page_url"))
     return _apply_extraction(program, report, report["program_page_url"],

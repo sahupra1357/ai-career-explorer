@@ -84,6 +84,27 @@ class TestProviderLoop:
         assert agent_llm.llm_provider() == "openai"
 
 
+class TestInvestigationCache:
+    async def test_save_then_get(self, monkeypatch):
+        monkeypatch.delenv("DATABASE_URL", raising=False)  # force in-memory
+        from app.course_search import investigation_cache as ic
+        ic.clear_memory()
+        await ic.save_investigation("upenn.edu", "computer science", "https://cs.upenn.edu/x",
+                                    {"curriculum_summary": "Real CS."})
+        assert await ic.get_investigation("upenn.edu", "computer science") == (
+            "https://cs.upenn.edu/x", {"curriculum_summary": "Real CS."})
+        assert await ic.get_investigation("upenn.edu", "nursing") is None  # different course → miss
+
+    async def test_ttl_expiry(self, monkeypatch):
+        from datetime import datetime, timedelta, timezone
+        monkeypatch.delenv("DATABASE_URL", raising=False)
+        from app.course_search import investigation_cache as ic
+        ic.clear_memory()
+        await ic.save_investigation("x.edu", "cs", "u", {"a": 1})
+        ic._MEM[("x.edu", "cs")] = ("u", {"a": 1}, datetime.now(timezone.utc) - timedelta(days=40))
+        assert await ic.get_investigation("x.edu", "cs") is None  # past the 30-day TTL
+
+
 class TestSubagent:
     async def test_mock_investigation_fills_curriculum(self, monkeypatch):
         monkeypatch.setenv("MOCK_CLAUDE", "1")
