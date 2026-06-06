@@ -487,14 +487,9 @@ def _write_prompt_log(request_id: str, prompt: str) -> None:
 # parallel. Each is a pinpoint search — `site:{college-domain} {course}` — to find that
 # one college's program page, then read it. No hardcoded data; cached so it's paid once.
 
-# (domain, course) -> (program_page_url, extracted_facts). Process-lifetime cache.
-_enrichment_cache: dict[tuple[str, str], tuple[str, dict]] = {}
-
-
 def clear_enrichment_cache() -> int:
-    n = len(_enrichment_cache)
-    _enrichment_cache.clear()
-    return n
+    from .investigation_cache import clear_memory
+    return clear_memory()
 
 
 def _official_domain(program: CollegeProgram) -> str | None:
@@ -570,11 +565,13 @@ def _flag_program(program: CollegeProgram, flags: list[str]) -> CollegeProgram:
 
 
 async def _enrich_program(program: CollegeProgram, plan: SearchPlan, request_id: str) -> CollegeProgram:
+    from .investigation_cache import get_investigation, save_investigation
+
     domain = _official_domain(program)
     if not domain:
         return program
-    cache_key = (domain, program.course_name.lower().strip())
-    cached = _enrichment_cache.get(cache_key)
+    course_norm = program.course_name.lower().strip()
+    cached = await get_investigation(domain, course_norm)
     if cached is not None:
         page_url, extracted = cached
         return _apply_extraction(program, extracted, page_url,
@@ -604,7 +601,7 @@ async def _enrich_program(program: CollegeProgram, plan: SearchPlan, request_id:
         return _flag_program(program, ["requires_manual_review"])
 
     page_url, extracted, score = best
-    _enrichment_cache[cache_key] = (page_url, extracted)
+    await save_investigation(domain, course_norm, page_url, extracted)
     log.info("kg_enriched", request_id=request_id, college=program.college_name,
              page=page_url, score=score, candidates=len(candidates))
     return _apply_extraction(program, extracted, page_url,
