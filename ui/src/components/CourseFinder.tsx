@@ -1,5 +1,15 @@
 import { useState } from 'react';
 import { searchCoursesStream, type SearchProgress } from '../api';
+import {
+  DECISION_FIELDS,
+  DEFAULT_PRIORITIES,
+  evidenceFor,
+  gapChips,
+  officialLink,
+  priorityStatuses,
+  readinessSummary,
+  yearOf,
+} from '../decision';
 import type { CourseSearchResponse, MoneyAmount, RankedProgram } from '../types';
 
 type SearchState =
@@ -47,13 +57,14 @@ function money(item: MoneyAmount | null) {
   }).format(item.amount);
 }
 
-function ProgramCard({ ranked }: { ranked: RankedProgram }) {
+function ProgramCard({ ranked, priorities }: { ranked: RankedProgram; priorities: Set<string> }) {
   const { program, distance_miles, match_reason } = ranked;
   const distance = distance_miles === null ? null : `${Math.round(distance_miles)} mi`;
-  const officialLink =
-    program.sources.find((s) => /official/i.test(s.label))?.url ??
-    program.sources[0]?.url ??
-    program.fees.source_url;
+  const link = officialLink(program);
+  const statuses = priorityStatuses(program, priorities);
+  const verifiedCount = statuses.filter((s) => s.verified).length;
+  const gaps = gapChips(program);
+  const tuitionAsOf = yearOf(evidenceFor(program, 'fees')?.as_of);
 
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -69,6 +80,11 @@ function ProgramCard({ ranked }: { ranked: RankedProgram }) {
                 {distance}
               </span>
             )}
+            {program.carnegie_classification && (
+              <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700">
+                {program.carnegie_classification.split(':')[0]}
+              </span>
+            )}
           </div>
           <p className="mt-1 text-sm font-medium text-slate-700">{program.degree}</p>
           <p className="mt-2 text-sm leading-6 text-slate-600">{program.overview}</p>
@@ -77,16 +93,74 @@ function ProgramCard({ ranked }: { ranked: RankedProgram }) {
           <p className="text-xs font-semibold uppercase text-slate-400">Estimated tuition</p>
           <p className="mt-2 text-sm text-slate-700">In-state: <strong>{money(program.fees.in_state_tuition)}</strong></p>
           <p className="text-sm text-slate-700">Out-of-state: <strong>{money(program.fees.out_of_state_tuition)}</strong></p>
+          {tuitionAsOf && <p className="mt-1 text-[11px] text-slate-400">College Scorecard · as of {tuitionAsOf}</p>}
         </div>
       </div>
+
+      {statuses.length > 0 && (
+        <div className="mt-4 rounded-md border border-cyan-100 bg-cyan-50/60 p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-900">Decision readiness</p>
+            <span className="text-xs font-medium text-cyan-800">
+              {verifiedCount} of {statuses.length} of your priorities verified
+            </span>
+          </div>
+          <ul className="mt-3 grid gap-x-6 gap-y-2 sm:grid-cols-2">
+            {statuses.map((s) => (
+              <li key={s.id} className="flex items-center justify-between gap-2 text-sm">
+                <span className="flex items-center gap-1.5 text-slate-700">
+                  <span className={s.verified ? 'text-emerald-600' : 'text-amber-500'}>{s.verified ? '✓' : '⚠'}</span>
+                  {s.label}
+                </span>
+                {s.verified ? (
+                  s.sourceLabel &&
+                  (s.url ? (
+                    <a href={s.url} target="_blank" rel="noreferrer"
+                      className="shrink-0 rounded bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200 hover:text-cyan-700">
+                      {s.sourceLabel}{s.asOf ? ` · ${s.asOf}` : ''} ↗
+                    </a>
+                  ) : (
+                    <span className="shrink-0 rounded bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200">
+                      {s.sourceLabel}{s.asOf ? ` · ${s.asOf}` : ''}
+                    </span>
+                  ))
+                ) : s.url ? (
+                  <a href={s.url} target="_blank" rel="noreferrer"
+                    className="shrink-0 text-[11px] font-medium text-amber-700 hover:underline">verify on site →</a>
+                ) : (
+                  <span className="shrink-0 text-[11px] font-medium text-amber-700">verify on site</span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs leading-5 text-slate-600">{readinessSummary(statuses)}</p>
+        </div>
+      )}
+
+      {gaps.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {gaps.map((g, i) =>
+            g.url ? (
+              <a key={i} href={g.url} target="_blank" rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-800 ring-1 ring-amber-200 hover:ring-amber-300">
+                ⚠ {g.label} ↗
+              </a>
+            ) : (
+              <span key={i} className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-800 ring-1 ring-amber-200">
+                ⚠ {g.label}
+              </span>
+            ),
+          )}
+        </div>
+      )}
 
       <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <section>
           <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Course structure</h4>
           <p className="mt-2 text-sm leading-6 text-slate-700">{program.curriculum_summary}</p>
-          {officialLink && (
+          {link && (
             <a
-              href={officialLink}
+              href={link}
               target="_blank"
               rel="noreferrer"
               className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-cyan-700 hover:text-cyan-800 hover:underline"
@@ -130,35 +204,45 @@ function ProgramCard({ ranked }: { ranked: RankedProgram }) {
       </div>
 
       <div className="mt-5 border-t border-slate-100 pt-4">
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Counselor read</p>
-            <p className="mt-2 text-sm leading-6 text-slate-700">
-              {match_reason}. {program.decision_factors.join(' · ')}
-            </p>
-            <p className="mt-2 text-xs text-slate-500">{program.fees.notes}</p>
-          </div>
-          <div className="flex flex-wrap gap-2 lg:justify-end">
-            {program.sources.map((source) => (
-              <a
-                key={source.url}
-                href={source.url}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:border-cyan-300 hover:text-cyan-700"
-              >
-                {source.label}
-              </a>
-            ))}
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Counselor read</p>
+        <p className="mt-2 text-sm leading-6 text-slate-700">
+          {match_reason}. {program.decision_factors.join(' · ')}
+        </p>
+        <p className="mt-2 text-xs text-slate-500">{program.fees.notes}</p>
+
+        <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">Sources &amp; verification</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {program.sources.map((source) => (
             <a
-              href={program.fees.source_url}
+              key={source.url}
+              href={source.url}
               target="_blank"
               rel="noreferrer"
               className="rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:border-cyan-300 hover:text-cyan-700"
             >
-              Cost source
+              {source.label}
             </a>
-          </div>
+          ))}
+          <a
+            href={program.fees.source_url}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:border-cyan-300 hover:text-cyan-700"
+          >
+            Cost source
+          </a>
+          {program.rankings.map((r) => (
+            <a
+              key={r.url}
+              href={r.url}
+              target="_blank"
+              rel="noreferrer"
+              title={r.note}
+              className="rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:border-cyan-300 hover:text-cyan-700"
+            >
+              {r.name}
+            </a>
+          ))}
         </div>
       </div>
     </article>
@@ -171,6 +255,15 @@ export default function CourseFinder() {
   const [state, setState] = useState('PA');
   const [homeState, setHomeState] = useState('PA');
   const [searchState, setSearchState] = useState<SearchState>({ phase: 'idle' });
+  const [priorities, setPriorities] = useState<Set<string>>(new Set(DEFAULT_PRIORITIES));
+
+  function togglePriority(id: string) {
+    setPriorities((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
 
   async function submit() {
     if (course.trim().length < 2 || searchState.phase === 'loading') return;
@@ -288,6 +381,31 @@ export default function CourseFinder() {
             </ul>
           </div>
 
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">What matters most to you?</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {DECISION_FIELDS.map((field) => {
+                const on = priorities.has(field.id);
+                return (
+                  <button
+                    key={field.id}
+                    onClick={() => togglePriority(field.id)}
+                    className={
+                      on
+                        ? 'rounded-full bg-cyan-600 px-3 py-1 text-xs font-medium text-white'
+                        : 'rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200'
+                    }
+                  >
+                    {field.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-slate-400">
+              Each college shows how many of these are verified (with their source) and what’s left to confirm.
+            </p>
+          </div>
+
           {searchState.data.tiers.map((tier) => (
             <section key={tier.tier} className="space-y-3">
               <div className="flex items-center justify-between">
@@ -297,7 +415,7 @@ export default function CourseFinder() {
               {tier.programs.length > 0 ? (
                 <div className="space-y-4">
                   {tier.programs.map((ranked) => (
-                    <ProgramCard key={ranked.program.program_id} ranked={ranked} />
+                    <ProgramCard key={ranked.program.program_id} ranked={ranked} priorities={priorities} />
                   ))}
                 </div>
               ) : (

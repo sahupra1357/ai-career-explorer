@@ -117,6 +117,29 @@ export interface ProgramSource {
   url: string;
 }
 
+export interface ProgramEvidence {
+  claim_type: string;
+  claim: string;
+  source_url: string;
+  source_label: string;
+  as_of: string;
+  confidence: 'high' | 'medium' | 'low';
+}
+
+export interface RankingLink {
+  name: string;
+  url: string;
+  note: string;
+}
+
+export interface LicensedRanking {
+  provider: string;
+  rank: number;
+  list_name: string | null;
+  year: number;
+  source_url: string | null;
+}
+
 export interface SemesterPlan {
   term: string;
   focus: string;
@@ -151,6 +174,12 @@ export interface CollegeProgram {
   fees: ProgramFees;
   decision_factors: string[];
   sources: ProgramSource[];
+  evidence: ProgramEvidence[];
+  data_quality_flags: string[];
+  last_checked_at: string | null;
+  carnegie_classification: string | null;
+  rankings: RankingLink[];
+  licensed_rankings: LicensedRanking[];
 }
 
 export interface RankedProgram {

@@ -1983,3 +1983,1041 @@ Bash(python3 --version && pip3 index versions rapidfuzz 2>/dev/null | head -3)
 
   Next step: First actual content — run make add-field for Biomedical Engineering, then show it to your family member alongside a ChatGPT comparison to validate the schema. That's the "assignment" from the design doc.
   After that, the FastAPI app skeleton is next.
+
+  -----------------------------------------
+
+  phase 2
+
+      58          query_embedding,
+      60 -        *dimensions,                                                                                                                        
+      59 +        dimensions,                                                                                                                         
+      60          top_k,
+      61      )
+      62      return [{"field_id": r["field_id"], "score": float(r["score"])} for r in rows]
+
+⏺ Now app/session_store.py:
+
+⏺ Write(app/session_store.py)
+  ⎿  Wrote 42 lines to app/session_store.py
+       1 """TTL-backed session store for explore graph state."""
+       2 from __future__ import annotations
+       3 
+       4 import uuid
+       5 from typing import Any 
+       6 
+       7 from cachetools import TTLCache
+       8 
+       9 _SESSION_TTL = 30 * 60  # 30 minutes
+      10 _MAX_SESSIONS = 1000
+     … +32 lines (ctrl+o to expand)
+
+⏺ Now look at existing models to understand what's there before adding Phase 2 models:
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Update(app/models.py)
+  ⎿  Added 48 lines
+      103      error: Literal["not_found"] = "not_found"
+      104      message: str
+      105      suggestions: list[str]
+      106 +                                                                                                                                           
+      107 +                                                                                                                                           
+      108 +# ── Phase 2: Explore mode ──────────────────────────────────────────────────────                                                          
+      109 +                                                                                                                                           
+      110 +class ExploreRequest(BaseModel):                                                                                                           
+      111 +    message: str = Field(min_length=1, max_length=2000)                                                                                    
+      112 +    session_id: Optional[str] = None                                                                                                       
+      113 +                                                                                                                                           
+      114 +    @field_validator("message")                                                                                                            
+      115 +    @classmethod                                                                                                                           
+      116 +    def strip_message(cls, v: str) -> str:                                                                                                 
+      117 +        return v.strip()                                                                                                                   
+      118 +                                                                                                                                           
+      119 +                                                                                                                                           
+      120 +class RecommendedField(BaseModel):                                                                                                         
+      121 +    field_id: str                                                                                                                          
+      122 +    name: str                                                                                                                              
+      123 +    reason: str                                                                                                                            
+      124 +    score: Optional[float] = None                                                                                                          
+      125 +                                                                                                                                           
+      126 +                                                                                                                                           
+      127 +class ExploreResponse(BaseModel):                                                                                                          
+      128 +    session_id: str                                                                                                                        
+      129 +    reply: str                                                                                                                             
+      130 +    status: Literal["intake", "clarifying", "complete"]                                                                                    
+      131 +    recommended_fields: list[RecommendedField] = []                                                                                        
+      132 +                                                                                                                                           
+      133 +                                                                                                                                           
+      134 +# ── Phase 2: Direct (deep dive) mode ──────────────────────────────────────────                                                           
+      135 +                                                                                                                                           
+      136 +class DirectRequest(BaseModel):                                                                                                            
+      137 +    field_id: str = Field(min_length=1, max_length=100)                                                                                    
+      138 +                                                                                                                                           
+      139 +    @field_validator("field_id")                                                                                                           
+      140 +    @classmethod                                                                                                                           
+      141 +    def normalize_field_id(cls, v: str) -> str:                                                                                            
+      142 +        return normalize_slug(v)                                                                                                           
+      143 +                                                                                                                                           
+      144 +                                                                                                                                           
+      145 +class DeepDiveSection(BaseModel):                                                                                                          
+      146 +    title: str                                                                                                                             
+      147 +    content: str                                                                                                                           
+      148 +                                                                                                                                           
+      149 +                                                                                                                                           
+      150 +class DirectResponse(BaseModel):                                                                                                           
+      151 +    field_id: str                                                                                                                          
+      152 +    name: str                                                                                                                              
+      153 +    sections: list[DeepDiveSection]                                                                                                        
+
+⏺ Now create app/explore_graph.py — the LangGraph graph with 3 async nodes:
+
+⏺ Write(app/explore_graph.py)
+  ⎿  Wrote 214 lines to app/explore_graph.py
+       1 """LangGraph explore graph: intake → clarify → recommend."""
+       2 from __future__ import annotations
+       3 
+       4 import os
+       5 from typing import Annotated, Any, TypedDict
+       6 
+       7 import structlog
+       8 from anthropic import AsyncAnthropic
+       9 from langgraph.graph import END, StateGraph
+      10 from langgraph.graph.message import add_messages
+     … +204 lines (ctrl+o to expand)
+
+⏺ Now create app/direct.py — the deep dive generator:
+
+⏺ Write(app/direct.py)
+  ⎿  Wrote 74 lines to app/direct.py
+       1 """Generate a structured deep-dive for a single STEM field via Claude."""
+       2 from __future__ import annotations
+       3 
+       4 import os
+       5    
+       6 import structlog
+       7 from anthropic import AsyncAnthropic
+       8 
+       9 from app.kb import FieldStore
+      10 from app.models import DeepDiveSection, DirectResponse
+     … +65 lines (ctrl+o to expand)
+
+⏺ Now look at the existing app/main.py to understand what needs updating:
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Update(app/main.py)
+  ⎿  Added 4 lines
+      20  from .models import (
+      21      CompareRequest,
+      22      CompareSuccess,
+      23 +    DirectRequest,                                                                                                                          
+      24 +    ExploreRequest,                                                                                                                         
+      25 +    ExploreResponse,                                                                                                                        
+      26      FieldSummary,
+      27      NotFound,
+      28      PartialNotFound,
+      29 +    RecommendedField,                                                                                                                       
+      30      normalize_slug,
+      31  )
+      32  from .summarize import clear_cache, generate_summary
+
+⏺ Update(app/main.py)
+  ⎿  Added 23 lines
+      66      store.load(fields_file)
+      67      log.info("kb_loaded", path=fields_file, count=len(store))
+      68  
+      69 +    # 3. Phase 2: connect pgvector (skip when MOCK_EMBEDDINGS=1)                                                                            
+      70 +    app.state.db_pool = None                                                                                                                
+      71 +    if os.getenv("MOCK_EMBEDDINGS") != "1":                                                                                                 
+      72 +        database_url = os.getenv("DATABASE_URL")                                                                                            
+      73 +        if database_url:                                                                                                                    
+      74 +            try:                                                                                                                            
+      75 +                import asyncpg                                                                                                              
+      76 +                app.state.db_pool = await asyncpg.create_pool(                                                                              
+      77 +                    database_url, min_size=2, max_size=10                                                                                   
+      78 +                )                                                                                                                           
+      79 +                log.info("db_pool_ready")                                                                                                   
+      80 +            except Exception as exc:                                                                                                        
+      81 +                log.warning("db_pool_failed", error=str(exc))                                                                               
+      82 +        else:                                                                                                                               
+      83 +            log.warning("database_url_missing", hint="set DATABASE_URL in .env or use MOCK_EMBEDDINGS=1")                                   
+      84 +                                                                                                                                            
+      85 +    # 4. Phase 2: compile LangGraph explore graph                                                                                           
+      86 +    from .explore_graph import get_graph                                                                                                    
+      87 +    app.state.explore_graph = get_graph()                                                                                                   
+      88 +    log.info("explore_graph_ready")                                                                                                         
+      89 +                                                                                                                                            
+      90      yield  # app runs here
+      91  
+      92 +    if app.state.db_pool is not None:                                                                                                       
+      93 +        await app.state.db_pool.close()                                                                                                     
+      94      log.info("shutdown")
+      95  
+      96  
+
+⏺ Now add the Phase 2 endpoints after the cache clear route:
+
+⏺ Update(app/main.py)
+  ⎿  Added 106 lines
+      194      return {"cleared": cleared}
+      195  
+      196  
+      197 +@app.post("/api/explore", response_model=ExploreResponse)                                                                                  
+      198 +@limiter.limit("20/minute")                                                                                                                
+      199 +async def explore(body: ExploreRequest, request: Request):                                                                                 
+      200 +    """Multi-turn explore conversation via LangGraph."""                                                                                   
+      201 +    from .explore_graph import ExploreGraphState                                                                                           
+      202 +    from .session_store import get_session, new_session, save_session                                                                      
+      203 +                                                                                                                                           
+      204 +    mock = os.getenv("MOCK_EMBEDDINGS") == "1"                                                                                             
+      205 +    pool = request.app.state.db_pool                                                                                                       
+      206 +    if not mock and pool is None:                                                                                                          
+      207 +        return JSONResponse(                                                                                                               
+      208 +            status_code=503,                                                                                                               
+      209 +            content={                                                                                                                      
+      210 +                "error": "db_unavailable",                                                                                                 
+      211 +                "message": (                                                                                                               
+      212 +                    "pgvector is not connected. Start Postgres with 'make dev-db', "                                                       
+      213 +                    "run 'make embed', then restart the server. "                                                                          
+      214 +                    "Or set MOCK_EMBEDDINGS=1 in .env for zero-infra dev."                                                                 
+      215 +                ),                                                                                                                         
+      216 +            },                                                                                                                             
+      217 +        )                                                                                                                                  
+      218 +                                                                                                                                           
+      219 +    session_id = body.session_id                                                                                                           
+      220 +    if session_id:                                                                                                                         
+      221 +        saved = get_session(session_id)                                                                                                    
+      222 +        if saved is None:                                                                                                                  
+      223 +            fresh_id = new_session()                                                                                                       
+      224 +            return JSONResponse(                                                                                                           
+      225 +                status_code=404,                                                                                                           
+      226 +                content={                                                                                                                  
+      227 +                    "error": "session_expired",                                                                                            
+      228 +                    "session_id": fresh_id,                                                                                                
+      229 +                    "message": "Session expired. Starting fresh.",                                                                         
+      230 +                },                                                                                                                         
+      231 +            )                                                                                                                              
+      232 +        state: ExploreGraphState = {**saved, "pool": pool, "field_ids": [f.field_id for f in store.all()]}                                 
+      233 +    else:                                                                                                                                  
+      234 +        session_id = new_session()                                                                                                         
+      235 +        state = {                                                                                                                          
+      236 +            "messages": [],                                                                                                                
+      237 +            "user_interests": [],                                                                                                          
+      238 +            "clarification_turns": 0,                                                                                                      
+      239 +            "recommended_fields": [],                                                                                                      
+      240 +            "status": "intake",                                                                                                            
+      241 +            "pool": pool,                                                                                                                  
+      242 +            "field_ids": [f.field_id for f in store.all()],                                                                                
+      243 +        }                                                                                                                                  
+      244 +                                                                                                                                           
+      245 +    state["messages"].append({"role": "user", "content": body.message})                                                                    
+      246 +                                                                                                                                           
+      247 +    graph = request.app.state.explore_graph                                                                                                
+      248 +    result = await graph.ainvoke(state)                                                                                                    
+      249 +                                                                                                                                           
+      250 +    reply = ""                                                                                                                             
+      251 +    for m in reversed(result.get("messages", [])):                                                                                         
+      252 +        if m.get("role") == "assistant":                                                                                                   
+      253 +            reply = m["content"]                                                                                                           
+      254 +            break                                                                                                                          
+      255 +                                                                                                                                           
+      256 +    serializable = {                                                                                                                       
+      257 +        "messages": result.get("messages", []),                                                                                            
+      258 +        "user_interests": result.get("user_interests", []),                                                                                
+      259 +        "clarification_turns": result.get("clarification_turns", 0),                                                                       
+      260 +        "recommended_fields": result.get("recommended_fields", []),                                                                        
+      261 +        "status": result.get("status", "intake"),                                                                                          
+      262 +    }                                                                                                                                      
+      263 +    save_session(session_id, serializable)                                                                                                 
+      264 +                                                                                                                                           
+      265 +    recommended_fields = [                                                                                                                 
+      266 +        RecommendedField(                                                                                                                  
+      267 +            field_id=r["field_id"],                                                                                                        
+      268 +            name=r["name"],                                                                                                                
+      269 +            reason=r.get("reason", ""),                                                                                                    
+      270 +            score=r.get("score"),                                                                                                          
+      271 +        )                                                                                                                                  
+      272 +        for r in result.get("recommended_fields", [])                                                                                      
+      273 +    ]                                                                                                                                      
+      274 +                                                                                                                                           
+      275 +    status = result.get("status", "intake")                                                                                                
+      276 +    if status not in ("intake", "clarifying", "complete"):                                                                                 
+      277 +        status = "clarifying"                                                                                                              
+      278 +                                                                                                                                           
+      279 +    log.info("explore_ok", session_id=session_id, status=status, recommended=len(recommended_fields))                                      
+      280 +    return ExploreResponse(                                                                                                                
+      281 +        session_id=session_id,                                                                                                             
+      282 +        reply=reply or "Tell me more about what interests you!",                                                                           
+      283 +        status=status,                                                                                                                     
+      284 +        recommended_fields=recommended_fields,                                                                                             
+      285 +    )                                                                                                                                      
+      286 +                                                                                                                                           
+      287 +                                                                                                                                           
+      288 +@app.post("/api/direct")                                                                                                                   
+      289 +@limiter.limit("10/minute")                                                                                                                
+      290 +async def direct(body: DirectRequest, request: Request):                                                                                   
+      291 +    """Generate a structured deep-dive for a single STEM field."""                                                                         
+      292 +    from .direct import generate_deep_dive                                                                                                 
+      293 +                                                                                                                                           
+      294 +    result = await generate_deep_dive(body.field_id)                                                                                       
+      295 +    if result is None:                                                                                                                     
+      296 +        return JSONResponse(                                                                                                               
+      297 +            status_code=404,                                                                                                               
+      298 +            content={"error": "not_found", "message": f"Field '{body.field_id}' not found."},                                              
+      299 +        )                                                                                                                                  
+      300 +    return result                                                                                                                          
+      301 +                                                                                                                                           
+      302 +                                                                                                                                           
+      303  @app.get("/health")
+      304  async def health():
+      305      return {"status": "ok", "fields_loaded": len(store)}
+
+⏺ Backend is complete. Let me verify the app can be imported cleanly:
+
+⏺ Bash(MOCK_CLAUDE=1 MOCK_EMBEDDINGS=1 ANTHROPIC_API_KEY=test .venv/bin/python -c "from app.main import app; print('import OK')" 2>&1)
+  ⎿  import OK
+
+⏺ Now look at the existing React UI structure:
+
+  Searched for 1 pattern, read 3 files (ctrl+o to expand)
+
+⏺ Now add Phase 2 types and API calls:
+
+⏺ Update(ui/src/types.ts)
+  ⎿  Added 29 lines
+       74  }
+       75  
+       76  export type CompareError = NotFoundError | PartialNotFoundError;
+       77 +                                                                                                                                           
+       78 +// ── Phase 2: Explore ──────────────────────────────────────────────────────────                                                          
+       79 +                                                                                                                                           
+       80 +export interface RecommendedField {                                                                                                        
+       81 +  field_id: string;                                                                                                                        
+       82 +  name: string;                                                                                                                            
+       83 +  reason: string;                                                                                                                          
+       84 +  score: number | null;                                                                                                                    
+       85 +}                                                                                                                                          
+       86 +                                                                                                                                           
+       87 +export interface ExploreResponse {                                                                                                         
+       88 +  session_id: string;                                                                                                                      
+       89 +  reply: string;                                                                                                                           
+       90 +  status: 'intake' | 'clarifying' | 'complete';                                                                                            
+       91 +  recommended_fields: RecommendedField[];                                                                                                  
+       92 +}                                                                                                                                          
+       93 +                                                                                                                                           
+       94 +// ── Phase 2: Direct (deep dive) ───────────────────────────────────────────────                                                          
+       95 +                                                                                                                                           
+       96 +export interface DeepDiveSection {                                                                                                         
+       97 +  title: string;                                                                                                                           
+       98 +  content: string;                                                                                                                         
+       99 +}                                                                                                                                          
+      100 +                                                                                                                                           
+      101 +export interface DirectResponse {                                                                                                          
+      102 +  field_id: string;                                                                                                                        
+      103 +  name: string;                                                                                                                            
+      104 +  sections: DeepDiveSection[];                                                                                                             
+      105 +}                                                                                                                                          
+
+⏺ Update(ui/src/api.ts)
+  ⎿  Added 1 line, removed 1 line
+      1 -import type { FieldSummary, CompareSuccess, CompareError } from './types';                                                                   
+      1 +import type { FieldSummary, CompareSuccess, CompareError, ExploreResponse, DirectResponse } from './types';                                  
+      2  
+      3  const BASE = '';
+      4     
+
+⏺ Update(ui/src/api.ts)
+  ⎿  Added 60 lines
+      31  
+      32    return { ok: false, status: res.status, error: await res.json() };
+      33  }
+      34 +                                                                                                                                            
+      35 +export type ExploreResult =                                                                                                                 
+      36 +  | { ok: true; data: ExploreResponse }                                                                                                     
+      37 +  | { ok: false; message: string; newSessionId?: string };                                                                                  
+      38 +                                                                                                                                            
+      39 +export async function sendExploreMessage(                                                                                                   
+      40 +  message: string,                                                                                                                          
+      41 +  sessionId: string | null,                                                                                                                 
+      42 +): Promise<ExploreResult> {                                                                                                                 
+      43 +  let res: Response;                                                                                                                        
+      44 +  try {                                                                                                                                     
+      45 +    res = await fetch(`${BASE}/api/explore`, {                                                                                              
+      46 +      method: 'POST',                                                                                                                       
+      47 +      headers: { 'Content-Type': 'application/json' },                                                                                      
+      48 +      body: JSON.stringify({ message, session_id: sessionId }),                                                                             
+      49 +    });                                                                                                                                     
+      50 +  } catch {                                                                                                                                 
+      51 +    return { ok: false, message: 'Could not reach the server. Is the backend running?' };                                                   
+      52 +  }                                                                                                                                         
+      53 +                                                                                                                                            
+      54 +  if (res.status === 404) {                                                                                                                 
+      55 +    const body = await res.json();                                                                                                          
+      56 +    return { ok: false, message: 'Session expired — starting fresh.', newSessionId: body.session_id };                                      
+      57 +  }                                                                                                                                         
+      58 +                                                                                                                                            
+      59 +  if (res.status === 503) {                                                                                                                 
+      60 +    const body = await res.json();                                                                                                          
+      61 +    return { ok: false, message: body.message ?? 'Service temporarily unavailable.' };                                                      
+      62 +  }                                                                                                                                         
+      63 +                                                                                                                                            
+      64 +  if (res.ok) {                                                                                                                             
+      65 +    return { ok: true, data: await res.json() };                                                                                            
+      66 +  }                                                                                                                                         
+      67 +                                                                                                                                            
+      68 +  return { ok: false, message: 'Something went wrong. Please try again.' };                                                                 
+      69 +}                                                                                                                                           
+      70 +                                                                                                                                            
+      71 +export type DirectResult =                                                                                                                  
+      72 +  | { ok: true; data: DirectResponse }                                                                                                      
+      73 +  | { ok: false; message: string };                                                                                                         
+      74 +                                                                                                                                            
+      75 +export async function fetchDeepDive(fieldId: string): Promise<DirectResult> {                                                               
+      76 +  let res: Response;                                                                                                                        
+      77 +  try {                                                                                                                                     
+      78 +    res = await fetch(`${BASE}/api/direct`, {                                                                                               
+      79 +      method: 'POST',                                                                                                                       
+      80 +      headers: { 'Content-Type': 'application/json' },                                                                                      
+      81 +      body: JSON.stringify({ field_id: fieldId }),                                                                                          
+      82 +    });                                                                                                                                     
+      83 +  } catch {                                                                                                                                 
+      84 +    return { ok: false, message: 'Could not reach the server. Is the backend running?' };                                                   
+      85 +  }                                                                                                                                         
+      86 +                                                                                                                                            
+      87 +  if (res.ok) {                                                                                                                             
+      88 +    return { ok: true, data: await res.json() };                                                                                            
+      89 +  }                                                                                                                                         
+      90 +                                                                                                                                            
+      91 +  const body = await res.json().catch(() => ({}));                                                                                          
+      92 +  return { ok: false, message: body.message ?? 'Field not found.' };                                                                        
+      93 +}                                                                                                                                           
+
+⏺ Now create the Phase 2 React components:
+
+⏺ Write(ui/src/components/ChatMessage.tsx)
+  ⎿  Wrote 21 lines to ui/src/components/ChatMessage.tsx
+       1 interface ChatMessageProps {
+       2   role: 'user' | 'assistant';
+       3   content: string;
+       4 }
+       5    
+       6 export default function ChatMessage({ role, content }: ChatMessageProps) {
+       7   const isUser = role === 'user';
+       8   return (
+       9     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-3`}>
+      10       <div
+     … +11 lines (ctrl+o to expand)
+
+⏺ Write(ui/src/components/FieldRecommendationCard.tsx)
+  ⎿  Wrote 35 lines to ui/src/components/FieldRecommendationCard.tsx
+       1 import type { RecommendedField } from '../types';
+       2 
+       3 interface FieldRecommendationCardProps {
+       4   field: RecommendedField;
+       5   onDeepDive: (fieldId: string) => void;
+       6 }
+       7 
+       8 export default function FieldRecommendationCard({ field, onDeepDive }: FieldRecommendationCardProps) {
+       9   return (
+      10     <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+     … +25 lines (ctrl+o to expand)
+
+⏺ Write(ui/src/components/ChatInterface.tsx)
+  ⎿  Wrote 164 lines to ui/src/components/ChatInterface.tsx
+       1 import { useState, useRef, useEffect } from 'react';
+       2 import { sendExploreMessage } from '../api';
+       3 import type { RecommendedField, ExploreResponse } from '../types';
+       4 import ChatMessage from './ChatMessage';
+       5 import FieldRecommendationCard from './FieldRecommendationCard';
+       6 
+       7 const SESSION_KEY = 'explore_session_id';
+       8 
+       9 interface Message {
+      10   role: 'user' | 'assistant';
+     … +158 lines (ctrl+o to expand)
+
+⏺ Write(ui/src/components/DeepDivePage.tsx)
+  ⎿  Wrote 77 lines to ui/src/components/DeepDivePage.tsx
+       1 import { useState, useEffect } from 'react';
+       2 import { fetchDeepDive } from '../api';
+       3 import type { DirectResponse } from '../types';
+       4 
+       5 interface DeepDivePageProps {
+       6   fieldId: string;
+       7   onBack: () => void;
+       8 }
+       9 
+      10 export default function DeepDivePage({ fieldId, onBack }: DeepDivePageProps) {
+     … +67 lines (ctrl+o to expand)
+
+⏺ Now update App.tsx with three-tab navigation:
+
+⏺ Write(ui/src/App.tsx)
+  ⎿  Added 121 lines, removed 51 lines
+       4  import FieldAutocomplete from './components/FieldAutocomplete';
+       5  import ComparisonResult from './components/ComparisonResult';
+       6  import ErrorCard from './components/ErrorCard';
+       7 +import ChatInterface from './components/ChatInterface';                                                                                     
+       8 +import DeepDivePage from './components/DeepDivePage';                                                                                       
+       9  
+       8 -type AppState =                                                                                                                             
+      10 +type Tab = 'compare' | 'explore' | 'deepdive';                                                                                              
+      11 +                                                                                                                                            
+      12 +type CompareState =                                                                                                                         
+      13    | { phase: 'idle' }
+      14    | { phase: 'loading' }
+      15    | { phase: 'success'; data: CompareSuccess }
+      16    | { phase: 'error'; status: number; error: CompareError | null; message?: string };
+      17  
+      18  export default function App() {
+      19 +  const [tab, setTab] = useState<Tab>('compare');                                                                                           
+      20 +  const [deepDiveFieldId, setDeepDiveFieldId] = useState<string | null>(null);                                                              
+      21 +                                                                                                                                            
+      22 +  // Compare tab state                                                                                                                      
+      23    const [knownFields, setKnownFields] = useState<FieldSummary[]>([]);
+      24    const [selections, setSelections] = useState<[string, string, string]>(['', '', '']);
+      17 -  const [state, setState] = useState<AppState>({ phase: 'idle' });                                                                          
+      25 +  const [compareState, setCompareState] = useState<CompareState>({ phase: 'idle' });                                                        
+      26  
+      27    useEffect(() => {
+      28      fetchFields().then(setKnownFields).catch(() => {});
+     ...
+      38  
+      39    function clearSelection(index: number) {
+      40      setSelection(index, '');
+      33 -    setState({ phase: 'idle' });                                                                                                            
+      41 +    setCompareState({ phase: 'idle' });                                                                                                     
+      42    }
+      43  
+      44    const chosen = selections.filter(Boolean);
+     ...
+       46  
+       47    async function handleCompare() {
+       48      if (!canCompare) return;
+       41 -    setState({ phase: 'loading' });                                                                                                        
+       49 +    setCompareState({ phase: 'loading' });                                                                                                 
+       50      const result = await compareFields(chosen);
+       51      if (result.ok) {
+       44 -      setState({ phase: 'success', data: result.data });                                                                                   
+       52 +      setCompareState({ phase: 'success', data: result.data });                                                                            
+       53      } else if ('message' in result) {
+       46 -      setState({ phase: 'error', status: 0, error: null, message: result.message });                                                       
+       54 +      setCompareState({ phase: 'error', status: 0, error: null, message: result.message });                                                
+       55      } else {
+       48 -      setState({ phase: 'error', status: result.status, error: result.error });                                                            
+       56 +      setCompareState({ phase: 'error', status: result.status, error: result.error });                                                     
+       57      }
+       58    }
+       59  
+       60 +  function handleDeepDive(fieldId: string) {                                                                                               
+       61 +    setDeepDiveFieldId(fieldId);                                                                                                           
+       62 +    setTab('deepdive');                                                                                                                    
+       63 +  }                                                                                                                                        
+       64 +                                                                                                                                           
+       65 +  function handleBackFromDeepDive() {                                                                                                      
+       66 +    setTab('explore');                                                                                                                     
+       67 +    setDeepDiveFieldId(null);                                                                                                              
+       68 +  }                                                                                                                                        
+       69 +                                                                                                                                           
+       70 +  const tabs: { id: Tab; label: string }[] = [                                                                                             
+       71 +    { id: 'compare', label: 'Compare' },                                                                                                   
+       72 +    { id: 'explore', label: 'Explore' },                                                                                                   
+       73 +    { id: 'deepdive', label: 'Deep Dive' },                                                                                                
+       74 +  ];                                                                                                                                       
+       75 +                                                                                                                                           
+       76    return (
+       77      <div className="min-h-screen bg-slate-50">
+       78        <div className="max-w-5xl mx-auto px-4 py-8">
+       79  
+       80          {/* Header */}
+       57 -        <header className="text-center mb-10">                                                                                             
+       81 +        <header className="text-center mb-8">                                                                                              
+       82            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">STEM Career Explorer</h1>
+       83            <p className="mt-2 text-slate-500 text-base">
+       60 -            Compare STEM fields side by side — built for high school students choosing a direction.                                        
+       84 +            Discover STEM fields that match your interests — built for high school students.                                               
+       85            </p>
+       86          </header>
+       87  
+       64 -        {/* Field selector */}                                                                                                             
+       65 -        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">                                                       
+       66 -          <p className="text-sm font-medium text-slate-600 mb-4">Choose 2 or 3 STEM fields to compare:</p>                                 
+       88 +        {/* Tab nav */}                                                                                                                    
+       89 +        <div className="flex gap-1 bg-white rounded-xl border border-slate-200 p-1 mb-6 w-fit mx-auto shadow-sm">                          
+       90 +          {tabs.map(({ id, label }) => (                                                                                                   
+       91 +            <button                                                                                                                        
+       92 +              key={id}                                                                                                                     
+       93 +              onClick={() => setTab(id)}                                                                                                   
+       94 +              className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${                                                       
+       95 +                tab === id                                                                                                                 
+       96 +                  ? 'bg-indigo-600 text-white shadow-sm'                                                                                   
+       97 +                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'                                                                
+       98 +              }`}                                                                                                                          
+       99 +            >                                                                                                                              
+      100 +              {label}                                                                                                                      
+      101 +            </button>                                                                                                                      
+      102 +          ))}                                                                                                                              
+      103 +        </div>                                                                                                                             
+      104  
+       68 -          <div className="flex flex-col sm:flex-row gap-3 mb-4">                                                                           
+       69 -            {[0, 1, 2].map((i) => (                                                                                                        
+       70 -              <FieldAutocomplete                                                                                                           
+       71 -                key={i}                                                                                                                    
+       72 -                index={i}                                                                                                                  
+       73 -                value={selections[i]}                                                                                                      
+       74 -                fields={knownFields}                                                                                                       
+       75 -                selected={selections.filter(Boolean)}                                                                                      
+       76 -                onChange={(v) => { setSelection(i, v); setState({ phase: 'idle' }); }}                                                     
+       77 -                onClear={() => clearSelection(i)}                                                                                          
+       78 -              />                                                                                                                           
+       79 -            ))}                                                                                                                            
+       80 -          </div>                                                                                                                           
+      105 +        {/* Compare tab */}                                                                                                                
+      106 +        {tab === 'compare' && (                                                                                                            
+      107 +          <>                                                                                                                               
+      108 +            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">                                                   
+      109 +              <p className="text-sm font-medium text-slate-600 mb-4">Choose 2 or 3 STEM fields to compare:</p>                             
+      110  
+       82 -          <button                                                                                                                          
+       83 -            onClick={handleCompare}                                                                                                        
+       84 -            disabled={!canCompare || state.phase === 'loading'}                                                                            
+       85 -            className={`w-full sm:w-auto px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${                                    
+       86 -              canCompare && state.phase !== 'loading'                                                                                      
+       87 -                ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'                                                                 
+       88 -                : 'bg-slate-200 text-slate-400 cursor-not-allowed'                                                                         
+       89 -            }`}                                                                                                                            
+       90 -          >                                                                                                                                
+       91 -            {state.phase === 'loading' ? (                                                                                                 
+       92 -              <span className="flex items-center gap-2">                                                                                   
+       93 -                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">                                                     
+       94 -                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />                           
+       95 -                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />                                           
+       96 -                </svg>                                                                                                                     
+       97 -                Comparing…                                                                                                                 
+       98 -              </span>                                                                                                                      
+       99 -            ) : 'Compare fields'}                                                                                                          
+      100 -          </button>                                                                                                                        
+      101 -        </div>                                                                                                                             
+      111 +              <div className="flex flex-col sm:flex-row gap-3 mb-4">                                                                       
+      112 +                {[0, 1, 2].map((i) => (                                                                                                    
+      113 +                  <FieldAutocomplete                                                                                                       
+      114 +                    key={i}                                                                                                                
+      115 +                    index={i}                                                                                                              
+      116 +                    value={selections[i]}                                                                                                  
+      117 +                    fields={knownFields}                                                                                                   
+      118 +                    selected={selections.filter(Boolean)}                                                                                  
+      119 +                    onChange={(v) => { setSelection(i, v); setCompareState({ phase: 'idle' }); }}                                          
+      120 +                    onClear={() => clearSelection(i)}                                                                                      
+      121 +                  />                                                                                                                       
+      122 +                ))}                                                                                                                        
+      123 +              </div>                                                                                                                       
+      124  
+      103 -        {/* Results */}                                                                                                                    
+      104 -        {state.phase === 'error' && (                                                                                                      
+      105 -          <div className="mt-6">                                                                                                           
+      106 -            <ErrorCard status={state.status} error={state.error} message={state.message} />                                                
+      125 +              <button                                                                                                                      
+      126 +                onClick={handleCompare}                                                                                                    
+      127 +                disabled={!canCompare || compareState.phase === 'loading'}                                                                 
+      128 +                className={`w-full sm:w-auto px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${                                
+      129 +                  canCompare && compareState.phase !== 'loading'                                                                           
+      130 +                    ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'                                                             
+      131 +                    : 'bg-slate-200 text-slate-400 cursor-not-allowed'                                                                     
+      132 +                }`}                                                                                                                        
+      133 +              >                                                                                                                            
+      134 +                {compareState.phase === 'loading' ? (                                                                                      
+      135 +                  <span className="flex items-center gap-2">                                                                               
+      136 +                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">                                                 
+      137 +                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />                       
+      138 +                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />                                       
+      139 +                    </svg>                                                                                                                 
+      140 +                    Comparing…                                                                                                             
+      141 +                  </span>                                                                                                                  
+      142 +                ) : 'Compare fields'}                                                                                                      
+      143 +              </button>                                                                                                                    
+      144 +            </div>                                                                                                                         
+      145 +                                                                                                                                           
+      146 +            {compareState.phase === 'error' && (                                                                                           
+      147 +              <div className="mt-6">                                                                                                       
+      148 +                <ErrorCard status={compareState.status} error={compareState.error} message={compareState.message} />                       
+      149 +              </div>                                                                                                                       
+      150 +            )}                                                                                                                             
+      151 +                                                                                                                                           
+      152 +            {compareState.phase === 'success' && (                                                                                         
+      153 +              <ComparisonResult result={compareState.data} />                                                                              
+      154 +            )}                                                                                                                             
+      155 +          </>                                                                                                                              
+      156 +        )}                                                                                                                                 
+      157 +                                                                                                                                           
+      158 +        {/* Explore tab */}                                                                                                                
+      159 +        {tab === 'explore' && (                                                                                                            
+      160 +          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">                                                     
+      161 +            <p className="text-sm font-medium text-slate-600 mb-4">                                                                        
+      162 +              Tell me about yourself and I'll match you with STEM fields:                                                                  
+      163 +            </p>                                                                                                                           
+      164 +            <ChatInterface onDeepDive={handleDeepDive} />                                                                                  
+      165            </div>
+      166          )}
+      167  
+      110 -        {state.phase === 'success' && (                                                                                                    
+      111 -          <ComparisonResult result={state.data} />                                                                                         
+      168 +        {/* Deep Dive tab */}                                                                                                              
+      169 +        {tab === 'deepdive' && (                                                                                                           
+      170 +          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">                                                     
+      171 +            {deepDiveFieldId ? (                                                                                                           
+      172 +              <DeepDivePage fieldId={deepDiveFieldId} onBack={handleBackFromDeepDive} />                                                   
+      173 +            ) : (                                                                                                                          
+      174 +              <div className="text-center py-12 text-slate-400">                                                                           
+      175 +                <p className="text-sm">                                                                                                    
+      176 +                  Use the <strong className="text-slate-600">Explore</strong> tab to find fields, then click{' '}                          
+      177 +                  <strong className="text-slate-600">Deep dive →</strong> on any recommendation.                                           
+      178 +                </p>                                                                                                                       
+      179 +              </div>                                                                                                                       
+      180 +            )}                                                                                                                             
+      181 +          </div>                                                                                                                           
+      182          )}
+      183  
+      184          {/* Footer */}
+
+⏺ Now build the UI to check for TypeScript errors:
+
+⏺ Bash(cd /Users/pradeepsahu/dev_data/AICareerExploration/ui && npm run build 2>&1)
+  ⎿  > ui@0.0.0 build
+     > tsc -b && vite build
+     … +9 lines (ctrl+o to expand)
+
+⏺ Clean build. Now write tests for the Phase 2 nodes. Let me check the existing test structure:
+
+  Searched for 1 pattern, read 1 file (ctrl+o to expand)
+
+⏺ Write(~/dev_data/AICareerExploration/tests/test_phase2.py)
+  ⎿  Wrote 118 lines to ../tests/test_phase2.py
+       1 """Phase 2 tests: embeddings mock, session store, explore endpoint, direct endpoint."""
+       2 import os
+       3 import pytest
+       4 from httpx import ASGITransport, AsyncClient
+       5    
+       6 
+       7 # ── Embeddings mock ────────────────────────────────────────────────────────────
+       8 
+       9 def test_embed_text_returns_zero_vector():
+      10     from app.embeddings import embed_text, EMBED_DIM
+     … +108 lines (ctrl+o to expand)
+
+⏺ Bash(cd /Users/pradeepsahu/dev_data/AICareerExploration && MOCK_CLAUDE=1 MOCK_EMBEDDINGS=1 ANTHROPIC_API_KEY=test .venv/bin/pytest tests/test_phase2.py -v
+      2>&1)
+  ⎿  Error: Exit code 1
+     /Users/pradeepsahu/dev_data/AICareerExploration/.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:208: PytestDeprecationWarning: The 
+     configuration option "asyncio_default_fixture_loop_scope" is unset.
+     The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope 
+     for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid 
+     fixture loop scopes are: "function", "class", "module", "package", "session"
+  
+       warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+     ============================= test session starts ==============================
+     platform darwin -- Python 3.13.9, pytest-8.3.3, pluggy-1.6.0 -- /Users/pradeepsahu/dev_data/AICareerExploration/.venv/bin/python3.13
+     cachedir: .pytest_cache
+     rootdir: /Users/pradeepsahu/dev_data/AICareerExploration
+     configfile: pyproject.toml
+     … +162 lines (ctrl+o to expand)
+
+⏺ Two issues: FieldStore is a singleton, and pytest-env + langgraph need installation. Let me check the KB structure first:
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ FieldStore is a no-arg singleton with no all() method. I need to fix kb.py, then fix all usages:
+
+⏺ Update(~/dev_data/AICareerExploration/app/kb.py)
+  ⎿  Added 3 lines
+      32              loaded[field.field_id] = field
+      33          self._fields = loaded
+      34  
+      35 +    def all(self) -> list[FieldEntry]:                                                                                                      
+      36 +        return list(self._fields.values())                                                                                                  
+      37 +                                                                                                                                            
+      38      def list(self) -> list[dict]:
+      39          return [{"field_id": f.field_id, "name": f.name} for f in self._fields.values()]
+      40  
+
+⏺ Now fix app/embeddings.py to use the singleton:
+
+⏺ Update(~/dev_data/AICareerExploration/app/embeddings.py)
+  ⎿  Added 1 line, removed 2 lines
+      39  ) -> list[dict]:
+      40      """Return top_k field_ids ranked by cosine similarity across given dimensions."""
+      41      if _MOCK:
+      42 -        from app.kb import FieldStore                                                                                                       
+      42 +        from app.kb import store                                                                                                            
+      43  
+      44 -        store = FieldStore(os.getenv("FIELDS_FILE", "data/fields.yaml"))                                                                    
+      44          fields = store.all()
+      45          sample = random.sample(fields, min(top_k, len(fields)))
+      46          return [{"field_id": f.field_id, "score": round(random.uniform(0.6, 0.95), 3)} for f in sample]
+
+⏺ Fix app/direct.py to use the singleton:
+
+⏺ Update(~/dev_data/AICareerExploration/app/direct.py)
+  ⎿  Added 1 line, removed 1 line
+       6  import structlog
+       7  from anthropic import AsyncAnthropic
+       8  
+       9 -from app.kb import FieldStore                                                                                                               
+       9 +from app.kb import store                                                                                                                    
+      10  from app.models import DeepDiveSection, DirectResponse
+      11  
+      12  log = structlog.get_logger()
+
+⏺ Update(~/dev_data/AICareerExploration/app/direct.py)
+  ⎿  Removed 1 line
+      25  
+      26  
+      27  async def generate_deep_dive(field_id: str) -> DirectResponse | None:
+      28 -    store = FieldStore(os.getenv("FIELDS_FILE", "data/fields.yaml"))                                                                        
+      28      field = store.get(field_id)
+      29      if field is None:
+      30          return None
+
+⏺ Fix app/explore_graph.py to use the singleton and remove the unused os import for FIELDS_FILE:
+
+⏺ Update(~/dev_data/AICareerExploration/app/explore_graph.py)
+  ⎿  Added 2 lines, removed 3 lines
+      115      field_ids = state.get("field_ids", [])
+      116  
+      117      from app.embeddings import embed_text, search_similar_fields
+      118 -    from app.kb import FieldStore                                                                                                          
+      118 +    from app.kb import store as kb_store                                                                                                   
+      119  
+      120      query = " ".join(interests)
+      121      embedding = await embed_text(query)
+     ...
+      123      search_dims = ["plain_english", "personality_fit", "career_outcomes"]
+      124      results = await search_similar_fields(pool, embedding, search_dims, top_k=5)
+      125  
+      126 -    store = FieldStore(os.getenv("FIELDS_FILE", "data/fields.yaml"))                                                                       
+      127 -    fields = {f.field_id: f for f in store.all()}                                                                                          
+      126 +    fields = {f.field_id: f for f in kb_store.all()}                                                                                       
+      127  
+      128      recommended: list[dict] = []
+      129      for r in results:
+
+⏺ Also fix the main.py lifespan which calls store.all() — let me check that reference:
+
+  Searched for 1 pattern (ctrl+o to expand)
+
+⏺ Good, main.py uses the imported store which is the singleton. Now also fix kb.py's list() return type — the list_fields route uses it:
+
+  Searched for 2 patterns (ctrl+o to expand)
+
+⏺ Good. Now install the missing packages and run tests again:
+
+⏺ Bash(cd /Users/pradeepsahu/dev_data/AICareerExploration && .venv/bin/pip install -q langgraph langchain-anthropic openai asyncpg pgvector pytest-env 2>&1 |
+       tail -5)
+  ⎿  ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the foll
+     owing dependency conflicts.
+     pytest-asyncio 0.24.0 requires pytest<9,>=8.2, but you have pytest 9.0.3 which is incompatible.
+  ⎿  (timeout 2m)
+
+⏺ Bash(MOCK_CLAUDE=1 MOCK_EMBEDDINGS=1 ANTHROPIC_API_KEY=test .venv/bin/pytest tests/test_phase2.py -v 2>&1)
+  ⎿  Error: Exit code 1
+     ============================= test session starts ==============================
+     platform darwin -- Python 3.13.9, pytest-9.0.3, pluggy-1.6.0 -- /Users/pradeepsahu/dev_data/AICareerExploration/.venv/bin/python3.13
+     cachedir: .pytest_cache
+     rootdir: /Users/pradeepsahu/dev_data/AICareerExploration
+     configfile: pyproject.toml
+     plugins: asyncio-0.24.0, langsmith-0.8.6, env-1.6.0, anyio-4.6.0
+     asyncio: mode=Mode.AUTO, default_loop_scope=None
+     collecting ... collected 9 items
+
+     … +168 lines (ctrl+o to expand)
+
+⏺ The explore graph isn't set in the test fixture. I need to set it explicitly since tests bypass the lifespan:
+
+⏺ Update(tests/test_phase2.py)
+  ⎿  Added 2 lines
+      56  @pytest.fixture
+      57  def app_with_mocks():
+      58      from app.main import app
+      59 +    from app.explore_graph import get_graph                                                                                                 
+      60      app.state.db_pool = None
+      61 +    app.state.explore_graph = get_graph()                                                                                                   
+      62      return app
+      63  
+      64  
+
+⏺ Bash(MOCK_CLAUDE=1 MOCK_EMBEDDINGS=1 ANTHROPIC_API_KEY=test .venv/bin/pytest tests/test_phase2.py -v 2>&1)
+  ⎿  Error: Exit code 1
+     ============================= test session starts ==============================
+     platform darwin -- Python 3.13.9, pytest-9.0.3, pluggy-1.6.0 -- /Users/pradeepsahu/dev_data/AICareerExploration/.venv/bin/python3.13
+     cachedir: .pytest_cache
+     rootdir: /Users/pradeepsahu/dev_data/AICareerExploration
+     configfile: pyproject.toml
+     plugins: asyncio-0.24.0, langsmith-0.8.6, env-1.6.0, anyio-4.6.0
+     asyncio: mode=Mode.AUTO, default_loop_scope=None
+     collecting ... collected 9 items
+
+     … +168 lines (ctrl+o to expand)
+
+⏺ LangGraph's add_messages converts dicts to LangChain message objects. I need to remove that and manage messages as plain dicts:
+
+⏺ Update(app/explore_graph.py)
+  ⎿  Added 1 line, removed 2 lines
+       7  import structlog
+       8  from anthropic import AsyncAnthropic
+       9  from langgraph.graph import END, StateGraph
+      10 -from langgraph.graph.message import add_messages                                                                                            
+      10    
+      11  log = structlog.get_logger()
+      12  
+     ...
+      15  
+      16  
+      17  class ExploreGraphState(TypedDict):
+      19 -    messages: Annotated[list[dict], add_messages]                                                                                           
+      18 +    messages: list[dict]                                                                                                                    
+      19      user_interests: list[str]
+      20      clarification_turns: int
+      21      recommended_fields: list[dict]
+
+⏺ Also fix the unused Annotated import:
+
+⏺ Update(app/explore_graph.py)
+  ⎿  Added 1 line, removed 1 line
+      2  from __future__ import annotations
+      3  
+      4  import os
+      5 -from typing import Annotated, Any, TypedDict                                                                                                 
+      5 +from typing import Any, TypedDict                                                                                                            
+      6  
+      7  import structlog
+      8  from anthropic import AsyncAnthropic
+
+⏺ Now fix the nodes to append to the existing messages list instead of relying on add_messages reducer:
+
+⏺ Update(app/explore_graph.py)
+  ⎿  Added 1 line, removed 1 line
+      101          await client.close()
+      102  
+      103      return {
+      104 -        "messages": [{"role": "assistant", "content": reply}],                                                                             
+      104 +        "messages": state.get("messages", []) + [{"role": "assistant", "content": reply}],                                                 
+      105          "clarification_turns": turns + 1,
+      106          "status": "clarifying",
+      107      }
+
+⏺ Update(app/explore_graph.py)
+  ⎿  Added 1 line, removed 1 line
+      170          r["reason"] = reply
+      171  
+      172      return {
+      173 -        "messages": [{"role": "assistant", "content": reply}],                                                                             
+      173 +        "messages": state.get("messages", []) + [{"role": "assistant", "content": reply}],                                                 
+      174          "recommended_fields": recommended,
+      175          "status": "complete",
+      176      }
+
+⏺ Bash(MOCK_CLAUDE=1 MOCK_EMBEDDINGS=1 ANTHROPIC_API_KEY=test .venv/bin/pytest tests/test_phase2.py -v 2>&1)
+  ⎿  ============================= test session starts ==============================
+     platform darwin -- Python 3.13.9, pytest-9.0.3, pluggy-1.6.0 -- /Users/pradeepsahu/dev_data/AICareerExploration/.venv/bin/python3.13
+     cachedir: .pytest_cache
+     … +23 lines (ctrl+o to expand)
+
+⏺ 8 passed, 1 skipped (the "direct known field" test skips because the KB singleton isn't populated in that test — expected). Now run the full test suite to
+  make sure Phase 1 is still green:
+
+⏺ Bash(MOCK_CLAUDE=1 MOCK_EMBEDDINGS=1 ANTHROPIC_API_KEY=test .venv/bin/pytest tests/ -v 2>&1)
+  ⎿  Error: Exit code 1
+     ============================= test session starts ==============================
+     platform darwin -- Python 3.13.9, pytest-9.0.3, pluggy-1.6.0 -- /Users/pradeepsahu/dev_data/AICareerExploration/.venv/bin/python3.13
+     cachedir: .pytest_cache
+     rootdir: /Users/pradeepsahu/dev_data/AICareerExploration
+     configfile: pyproject.toml
+     plugins: asyncio-0.24.0, langsmith-0.8.6, env-1.6.0, anyio-4.6.0
+     asyncio: mode=Mode.AUTO, default_loop_scope=None
+     collecting ... collected 96 items
+
+     … +139 lines (ctrl+o to expand)
+
+⏺ Two fixes needed: the test uses .field_id on a dict (use all() instead), and the summarize test checks the old (buggy) behavior of caching None:
+
+⏺ Update(tests/test_phase2.py)
+  ⎿  Added 1 line, removed 1 line
+      105  @pytest.mark.asyncio
+      106  async def test_direct_known_field_mock(app_with_mocks):
+      107      from app.kb import store
+      108 -    fields = store.list()                                                                                                                  
+      108 +    fields = store.all()                                                                                                                   
+      109      if not fields:
+      110          pytest.skip("No fields loaded")
+      111      first_id = fields[0].field_id
+
+⏺ Now fix the summarize test — it was testing the buggy behavior. Update it to test the correct behavior (don't retry, but also don't cache None):
+
+  Read 1 file (ctrl+o to expand)
+
+⏺ Update(tests/test_summarize.py)
+  ⎿  Added 3 lines, removed 3 lines
+      139  
+      140          assert result is None
+      141  
+      142 -    async def test_none_result_is_cached(self, monkeypatch):                                                                               
+      143 -        """A failed Claude call (None) should be cached to avoid hammering the API."""                                                     
+      142 +    async def test_none_result_not_cached(self, monkeypatch):                                                                              
+      143 +        """A failed Claude call (None) must NOT be cached — retry on next request."""                                                      
+      144          monkeypatch.delenv("MOCK_CLAUDE", raising=False)
+      145          call_count = 0
+      146  
+     ...
+      154              r2 = await generate_summary([FIELD_A, FIELD_B], "req-2")
+      155  
+      156          assert r1 is None and r2 is None
+      157 -        assert call_count == 1  # failure is cached — Claude not retried                                                                   
+      157 +        assert call_count == 2  # None not cached — Claude retried each time                                                               
+      158  
+      159  
+      160  # ── DEBUG_PROMPTS ──────────────────────────────────────────────────────────────
+
+⏺ Bash(MOCK_CLAUDE=1 MOCK_EMBEDDINGS=1 ANTHROPIC_API_KEY=test .venv/bin/pytest tests/ -v --tb=short 2>&1 | tail -20)
+  ⎿  tests/test_phase2.py::test_new_session_returns_unique_ids PASSED         [ 82%]
+     tests/test_phase2.py::test_explore_new_session PASSED                    [ 83%]
+     tests/test_phase2.py::test_explore_returns_session_id PASSED             [ 84%]
+     … +17 lines (ctrl+o to expand)
+
+⏺ 96/96 passing. Phase 2 is complete. Here's a summary of everything that was built:
+
+  Pre-build artifacts
+  - .env.example — added OPENAI_API_KEY, MOCK_EMBEDDINGS=1, DATABASE_URL
+  - pyproject.toml — added env list for pytest-env (MOCK_CLAUDE=1, ANTHROPIC_API_KEY=test-key, MOCK_EMBEDDINGS=1)
+  - Makefile — added dev-db, dev-phase2, migrate, embed, new-migration targets
+
+  Bug fix
+  - app/summarize.py:84 — None no longer gets cached on timeout (was poisoning cache permanently)
+
+  New backend modules 
+  - app/embeddings.py — embed_text() + search_similar_fields() with MOCK_EMBEDDINGS=1 stub (zero vector + random KB sample, no Docker required)
+  - app/session_store.py — TTLCache-backed session store (30 min TTL, 1000 sessions)
+  - app/explore_graph.py — LangGraph 3-node graph: intake → clarify → recommend, all async, XML prompt injection guard, plain dict messages (no LangChain
+  message objects)
+  - app/direct.py — 5-section deep dive generator via Claude
+  - app/kb.py — added all() method returning list[FieldEntry]
+  - app/models.py — added ExploreRequest, ExploreResponse, DirectRequest, DirectResponse, RecommendedField, DeepDiveSection
+  - app/main.py — lifespan adds asyncpg pool + graph compilation; new /api/explore (with 503 guard) and /api/direct endpoints
+
+  New frontend components
+  - ChatMessage.tsx, ChatInterface.tsx, FieldRecommendationCard.tsx, DeepDivePage.tsx
+  - App.tsx — three-tab nav (Compare | Explore | Deep Dive), explore→deep dive handoff
+  - api.ts / types.ts — Phase 2 API calls and types
+ 
+  Tests — 96 passing, including 9 new Phase 2 tests
+
+✻ Cooked for 31m 32s
+
+※ recap: Phase 2 (explore/direct modes with LangGraph and pgvector) is fully built and all 96 tests pass. Next: start the dev server and smoke-test the UI in
+   a browser.
+  
+● How is Claude doing this session? (optional)
+  1: Bad    2: Fine   3: Good   0: Dismiss
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯  
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents                                                                 ~98k uncached · /clear to start fresh
