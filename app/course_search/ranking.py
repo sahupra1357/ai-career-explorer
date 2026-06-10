@@ -82,6 +82,7 @@ def build_ranked_tiers(candidates: list[ProgramCandidate], plan: SearchPlan) -> 
         f"within roughly {plan.nearby_radius_miles} miles of your location",
         used_ids,
         3,
+        sort_by_distance=True,
     )
     home = _ranked(
         [p for p in programs if home_state and p.state == home_state],
@@ -90,6 +91,7 @@ def build_ranked_tiers(candidates: list[ProgramCandidate], plan: SearchPlan) -> 
         f"in your home state ({home_state})",
         used_ids,
         3,
+        sort_by_distance=True,
     )
     neighbors = NEIGHBORING_STATES.get(home_state or "", set())
     nearby_states = _ranked(
@@ -99,6 +101,7 @@ def build_ranked_tiers(candidates: list[ProgramCandidate], plan: SearchPlan) -> 
         "in a nearby home state",
         used_ids,
         3,
+        sort_by_distance=True,
     )
     best = _ranked(
         programs,
@@ -133,8 +136,9 @@ def _ranked(
     reason: str,
     used_ids: set[str],
     limit: int,
+    sort_by_distance: bool = False,
 ) -> list[RankedProgram]:
-    ranked: list[tuple[float, RankedProgram]] = []
+    ranked: list[tuple[float, float | None, RankedProgram]] = []
     for program in programs:
         if program.program_id in used_ids:
             continue
@@ -143,13 +147,20 @@ def _ranked(
         score = program.ranking_score + distance_bonus + fuzz.token_set_ratio(query, program.course_name) / 10
         ranked.append((
             score,
+            distance,
             RankedProgram(
                 program=program,
                 distance_miles=round(distance, 1) if distance is not None else None,
                 match_reason=reason,
             ),
         ))
-    results = [item for _, item in sorted(ranked, key=lambda row: -row[0])][:limit]
+    if sort_by_distance:
+        # Geographic tiers: closest first; unknown-distance programs last, score as tiebreak.
+        ranked.sort(key=lambda row: (row[1] is None, row[1] if row[1] is not None else 0.0, -row[0]))
+    else:
+        # National tier: best composite fit first.
+        ranked.sort(key=lambda row: -row[0])
+    results = [item for _, _, item in ranked][:limit]
     for result in results:
         used_ids.add(result.program.program_id)
     return results

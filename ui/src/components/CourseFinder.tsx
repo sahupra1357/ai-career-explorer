@@ -58,193 +58,282 @@ function money(item: MoneyAmount | null) {
 }
 
 function ProgramCard({ ranked, priorities }: { ranked: RankedProgram; priorities: Set<string> }) {
+  const [open, setOpen] = useState(false);
   const { program, distance_miles, match_reason } = ranked;
   const distance = distance_miles === null ? null : `${Math.round(distance_miles)} mi`;
   const link = officialLink(program);
   const statuses = priorityStatuses(program, priorities);
   const verifiedCount = statuses.filter((s) => s.verified).length;
+  const allVerified = statuses.length > 0 && verifiedCount === statuses.length;
   const gaps = gapChips(program);
   const tuitionAsOf = yearOf(evidenceFor(program, 'fees')?.as_of);
 
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-lg font-semibold text-slate-950">{program.college_name}</h3>
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-              {program.city}, {program.state}
+    <article
+      className="xc"
+      style={{
+        overflow: 'hidden',
+        transition: 'border-color 0.15s',
+        borderColor: open ? 'var(--bdr2)' : undefined,
+      }}
+    >
+      {/* Collapsed header — always visible */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="xcard-btn"
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 12,
+          padding: '16px 20px',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          textAlign: 'left',
+          transition: 'background 0.12s',
+        }}
+      >
+        {/* Left: name + degree */}
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+            <span style={{
+              fontFamily: 'var(--fb)',
+              fontSize: 16,
+              fontWeight: 600,
+              color: 'var(--t1)',
+            }}>
+              {program.college_name}
             </span>
+            <span className="xbadge xbadge-grey">{program.city}, {program.state}</span>
             {distance && (
-              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+              <span className="xbadge" style={{ background: 'rgba(41,160,126,0.12)', color: 'var(--teal)' }}>
                 {distance}
               </span>
             )}
             {program.carnegie_classification && (
-              <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700">
+              <span className="xbadge xbadge-grey">
                 {program.carnegie_classification.split(':')[0]}
               </span>
             )}
           </div>
-          <p className="mt-1 text-sm font-medium text-slate-700">{program.degree}</p>
-          <p className="mt-2 text-sm leading-6 text-slate-600">{program.overview}</p>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--t2)', fontWeight: 400 }}>
+            {program.degree}
+          </p>
         </div>
-        <div className="min-w-44 rounded-md border border-slate-200 bg-slate-50 p-3">
-          <p className="text-xs font-semibold uppercase text-slate-400">Estimated tuition</p>
-          <p className="mt-2 text-sm text-slate-700">In-state: <strong>{money(program.fees.in_state_tuition)}</strong></p>
-          <p className="text-sm text-slate-700">Out-of-state: <strong>{money(program.fees.out_of_state_tuition)}</strong></p>
-          {tuitionAsOf && <p className="mt-1 text-[11px] text-slate-400">College Scorecard · as of {tuitionAsOf}</p>}
-        </div>
-      </div>
 
-      {statuses.length > 0 && (
-        <div className="mt-4 rounded-md border border-cyan-100 bg-cyan-50/60 p-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-900">Decision readiness</p>
-            <span className="text-xs font-medium text-cyan-800">
-              {verifiedCount} of {statuses.length} of your priorities verified
-            </span>
-          </div>
-          <ul className="mt-3 grid gap-x-6 gap-y-2 sm:grid-cols-2">
-            {statuses.map((s) => (
-              <li key={s.id} className="flex items-center justify-between gap-2 text-sm">
-                <span className="flex items-center gap-1.5 text-slate-700">
-                  <span className={s.verified ? 'text-emerald-600' : 'text-amber-500'}>{s.verified ? '✓' : '⚠'}</span>
-                  {s.label}
-                </span>
-                {s.verified ? (
-                  s.sourceLabel &&
-                  (s.url ? (
-                    <a href={s.url} target="_blank" rel="noreferrer"
-                      className="shrink-0 rounded bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200 hover:text-cyan-700">
-                      {s.sourceLabel}{s.asOf ? ` · ${s.asOf}` : ''} ↗
-                    </a>
-                  ) : (
-                    <span className="shrink-0 rounded bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200">
-                      {s.sourceLabel}{s.asOf ? ` · ${s.asOf}` : ''}
-                    </span>
-                  ))
-                ) : s.url ? (
-                  <a href={s.url} target="_blank" rel="noreferrer"
-                    className="shrink-0 text-[11px] font-medium text-amber-700 hover:underline">verify on site →</a>
-                ) : (
-                  <span className="shrink-0 text-[11px] font-medium text-amber-700">verify on site</span>
-                )}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-xs leading-5 text-slate-600">{readinessSummary(statuses)}</p>
-        </div>
-      )}
-
-      {gaps.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {gaps.map((g, i) =>
-            g.url ? (
-              <a key={i} href={g.url} target="_blank" rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-800 ring-1 ring-amber-200 hover:ring-amber-300">
-                ⚠ {g.label} ↗
-              </a>
-            ) : (
-              <span key={i} className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-800 ring-1 ring-amber-200">
-                ⚠ {g.label}
-              </span>
-            ),
-          )}
-        </div>
-      )}
-
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <section>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Course structure</h4>
-          <p className="mt-2 text-sm leading-6 text-slate-700">{program.curriculum_summary}</p>
-          {link && (
-            <a
-              href={link}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-cyan-700 hover:text-cyan-800 hover:underline"
+        {/* Right: verified badge + chevron */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          {statuses.length > 0 && (
+            <span
+              className="xbadge"
+              style={allVerified
+                ? { background: 'var(--teal-bg)', color: 'var(--teal)' }
+                : { background: 'var(--amber-bg)', color: 'var(--amber-lt)' }
+              }
             >
-              View official program page →
-            </a>
+              {verifiedCount}/{statuses.length} verified
+            </span>
           )}
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {program.semester_plan.map((term) => (
-              <div key={term.term} className="rounded-md border border-slate-200 bg-white p-3">
-                <p className="text-sm font-semibold text-slate-800">{term.term}</p>
-                <p className="text-xs text-slate-500">{term.focus}</p>
-                <ul className="mt-2 space-y-1">
-                  {term.courses.slice(0, 4).map((course) => (
-                    <li key={course} className="text-xs text-slate-600">{course}</li>
+          <svg
+            style={{
+              width: 18,
+              height: 18,
+              color: 'var(--t3)',
+              transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s',
+              flexShrink: 0,
+            }}
+            viewBox="0 0 20 20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="m6 8 4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+      </button>
+
+      {/* Expanded detail */}
+      {open && (
+        <div style={{ borderTop: '1px solid var(--bdr)' }}>
+
+          {/* Overview + tuition */}
+          <div style={{ padding: '20px 20px 0', display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'flex-start' }}>
+            <p style={{ flex: '1 1 300px', margin: 0, fontSize: 13, lineHeight: 1.7, color: 'var(--t2)' }}>
+              {program.overview}
+            </p>
+            <div style={{
+              flexShrink: 0,
+              minWidth: 180,
+              background: 'var(--s2)',
+              border: '1px solid var(--bdr)',
+              borderRadius: 8,
+              padding: '12px 16px',
+            }}>
+              <p className="xsec" style={{ margin: '0 0 8px' }}>Estimated tuition</p>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--t2)' }}>
+                In-state: <strong style={{ color: 'var(--t1)' }}>{money(program.fees.in_state_tuition)}</strong>
+              </p>
+              <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--t2)' }}>
+                Out-of-state: <strong style={{ color: 'var(--t1)' }}>{money(program.fees.out_of_state_tuition)}</strong>
+              </p>
+              {tuitionAsOf && (
+                <p style={{ margin: '6px 0 0', fontSize: 11, color: 'var(--t3)' }}>
+                  College Scorecard · as of {tuitionAsOf}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Decision readiness */}
+          {statuses.length > 0 && (
+            <div style={{
+              margin: '16px 20px 0',
+              background: 'var(--s2)',
+              border: '1px solid var(--bdr)',
+              borderRadius: 10,
+              padding: '14px 16px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                <p className="xsec" style={{ margin: 0 }}>Decision readiness</p>
+                <span style={{ fontSize: 12, fontWeight: 600, color: allVerified ? 'var(--teal)' : 'var(--amber-lt)' }}>
+                  {verifiedCount} of {statuses.length} of your priorities verified
+                </span>
+              </div>
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: '8px 24px', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
+                {statuses.map((s) => (
+                  <li key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--t1)' }}>
+                      <span style={{ color: s.verified ? 'var(--teal)' : 'var(--warn)', fontSize: 14 }}>
+                        {s.verified ? '✓' : '⚠'}
+                      </span>
+                      {s.label}
+                    </span>
+                    {s.verified ? (
+                      s.sourceLabel && (
+                        s.url ? (
+                          <a href={s.url} target="_blank" rel="noreferrer" className="xsrc">
+                            {s.sourceLabel}{s.asOf ? ` · ${s.asOf}` : ''} ↗
+                          </a>
+                        ) : (
+                          <span className="xsrc">{s.sourceLabel}{s.asOf ? ` · ${s.asOf}` : ''}</span>
+                        )
+                      )
+                    ) : (
+                      s.url
+                        ? <a href={s.url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--warn)', textDecoration: 'none' }}>verify →</a>
+                        : <span style={{ fontSize: 11, color: 'var(--warn)' }}>verify on site</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--t2)' }}>{readinessSummary(statuses)}</p>
+            </div>
+          )}
+
+          {/* Gap chips */}
+          {gaps.length > 0 && (
+            <div style={{ margin: '12px 20px 0', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {gaps.map((g, i) =>
+                g.url ? (
+                  <a key={i} href={g.url} target="_blank" rel="noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px', borderRadius: 99, fontSize: 11, fontWeight: 500, background: 'var(--warn-bg)', color: 'var(--warn)', textDecoration: 'none', outline: '1px solid rgba(200,120,40,0.25)', outlineOffset: -1 }}>
+                    ⚠ {g.label} ↗
+                  </a>
+                ) : (
+                  <span key={i}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px', borderRadius: 99, fontSize: 11, fontWeight: 500, background: 'var(--warn-bg)', color: 'var(--warn)', outline: '1px solid rgba(200,120,40,0.25)', outlineOffset: -1 }}>
+                    ⚠ {g.label}
+                  </span>
+                )
+              )}
+            </div>
+          )}
+
+          {/* Course structure + papers + factors */}
+          <div style={{ margin: '16px 20px 0', display: 'grid', gridTemplateColumns: '1fr auto', gap: '0 32px' }}>
+            <section>
+              <p className="xsec">Course structure</p>
+              <p style={{ margin: '0 0 8px', fontSize: 13, lineHeight: 1.7, color: 'var(--t2)' }}>
+                {program.curriculum_summary}
+              </p>
+              {link && (
+                <a href={link} target="_blank" rel="noreferrer"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500, color: 'var(--amber-lt)', textDecoration: 'none' }}>
+                  View official program page →
+                </a>
+              )}
+              {program.semester_plan.length > 0 && (
+                <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
+                  {program.semester_plan.map((term) => (
+                    <div key={term.term}
+                      style={{ background: 'var(--s2)', border: '1px solid var(--bdr)', borderRadius: 8, padding: 12 }}>
+                      <p style={{ margin: '0 0 2px', fontSize: 12, fontWeight: 600, color: 'var(--t1)' }}>{term.term}</p>
+                      <p style={{ margin: '0 0 6px', fontSize: 11, color: 'var(--t3)' }}>{term.focus}</p>
+                      <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+                        {term.courses.slice(0, 4).map((c) => (
+                          <li key={c} style={{ fontSize: 11, color: 'var(--t2)', paddingBottom: 2 }}>{c}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section style={{ minWidth: 180, maxWidth: 220 }}>
+              <div style={{ marginBottom: 20 }}>
+                <p className="xsec">Required papers</p>
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+                  {program.required_papers.map((p) => (
+                    <li key={p} style={{ fontSize: 13, color: 'var(--t2)', paddingBottom: 4 }}>{p}</li>
                   ))}
                 </ul>
               </div>
-            ))}
+              <div>
+                <p className="xsec">Admission factors</p>
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+                  {program.admission_factors.map((f) => (
+                    <li key={f} style={{ fontSize: 13, color: 'var(--t2)', paddingBottom: 4 }}>{f}</li>
+                  ))}
+                </ul>
+              </div>
+            </section>
           </div>
-        </section>
 
-        <section className="space-y-4">
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Required papers</h4>
-            <ul className="mt-2 space-y-1.5">
-              {program.required_papers.map((paper) => (
-                <li key={paper} className="text-sm text-slate-700">{paper}</li>
+          {/* Counselor read + sources */}
+          <div style={{ margin: '16px 20px 0', paddingTop: 16, borderTop: '1px solid var(--bdr)' }}>
+            <p className="xsec">Counselor read</p>
+            <p style={{ margin: '0 0 4px', fontSize: 13, lineHeight: 1.7, color: 'var(--t2)' }}>
+              {match_reason}. {program.decision_factors.join(' · ')}
+            </p>
+            {program.fees.notes && (
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--t3)' }}>{program.fees.notes}</p>
+            )}
+
+            <p className="xsec" style={{ marginTop: 14 }}>Sources &amp; verification</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingBottom: 20 }}>
+              {program.sources.map((src) => (
+                <a key={src.url} href={src.url} target="_blank" rel="noreferrer" className="xsrc">
+                  {src.label}
+                </a>
               ))}
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Admission factors</h4>
-            <ul className="mt-2 space-y-1.5">
-              {program.admission_factors.map((factor) => (
-                <li key={factor} className="text-sm text-slate-700">{factor}</li>
+              <a href={program.fees.source_url} target="_blank" rel="noreferrer" className="xsrc">
+                Cost source
+              </a>
+              {program.rankings.map((r) => (
+                <a key={r.url} href={r.url} target="_blank" rel="noreferrer" title={r.note} className="xsrc">
+                  {r.name}
+                </a>
               ))}
-            </ul>
+            </div>
           </div>
-        </section>
-      </div>
-
-      <div className="mt-5 border-t border-slate-100 pt-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Counselor read</p>
-        <p className="mt-2 text-sm leading-6 text-slate-700">
-          {match_reason}. {program.decision_factors.join(' · ')}
-        </p>
-        <p className="mt-2 text-xs text-slate-500">{program.fees.notes}</p>
-
-        <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">Sources &amp; verification</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {program.sources.map((source) => (
-            <a
-              key={source.url}
-              href={source.url}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:border-cyan-300 hover:text-cyan-700"
-            >
-              {source.label}
-            </a>
-          ))}
-          <a
-            href={program.fees.source_url}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:border-cyan-300 hover:text-cyan-700"
-          >
-            Cost source
-          </a>
-          {program.rankings.map((r) => (
-            <a
-              key={r.url}
-              href={r.url}
-              target="_blank"
-              rel="noreferrer"
-              title={r.note}
-              className="rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:border-cyan-300 hover:text-cyan-700"
-            >
-              {r.name}
-            </a>
-          ))}
         </div>
-      </div>
+      )}
     </article>
   );
 }
@@ -269,158 +358,205 @@ export default function CourseFinder() {
     if (course.trim().length < 2 || searchState.phase === 'loading') return;
     setSearchState({ phase: 'loading', progress: { phase: 'starting' } });
     const result = await searchCoursesStream(
-      {
-        course_query: course,
-        city: city || undefined,
-        state: state || undefined,
-        home_state: homeState || undefined,
-      },
-      (progress) =>
-        setSearchState((prev) => (prev.phase === 'loading' ? { phase: 'loading', progress } : prev)),
+      { course_query: course, city: city || undefined, state: state || undefined, home_state: homeState || undefined },
+      (progress) => setSearchState((prev) => (prev.phase === 'loading' ? { phase: 'loading', progress } : prev)),
     );
     setSearchState(result.ok ? { phase: 'success', data: result.data } : { phase: 'error', message: result.message });
   }
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-3 md:grid-cols-[1.2fr_1fr_120px_150px_auto] md:items-end">
-          <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Course</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+      {/* Search form */}
+      <section className="xc" style={{ padding: 20 }}>
+        <form
+          onSubmit={(e) => { e.preventDefault(); submit(); }}
+          style={{ display: 'grid', gap: 12, gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1fr) auto auto auto', alignItems: 'end' }}
+        >
+          <label>
+            <span className="xl">Course or program</span>
             <input
               value={course}
-              onChange={(event) => setCourse(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+              onChange={(e) => setCourse(e.target.value)}
+              className="xi"
               placeholder="Computer Science"
             />
           </label>
-          <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">City</span>
+          <label>
+            <span className="xl">City</span>
             <input
               value={city}
-              onChange={(event) => setCity(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
-              placeholder="Berkeley"
+              onChange={(e) => setCity(e.target.value)}
+              className="xi"
+              placeholder="Philadelphia"
             />
           </label>
-          <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">State</span>
-            <select
-              value={state}
-              onChange={(event) => setState(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
-            >
-              {STATES.map(([code, name]) => <option key={code} value={code}>{code} — {name}</option>)}
+          <label>
+            <span className="xl">State</span>
+            <select value={state} onChange={(e) => setState(e.target.value)} className="xi" title="State to search in" style={{ width: 76 }}>
+              {STATES.map(([code, name]) => <option key={code} value={code} title={name}>{code}</option>)}
             </select>
           </label>
-          <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Home state</span>
-            <select
-              value={homeState}
-              onChange={(event) => setHomeState(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
-            >
-              {STATES.map(([code, name]) => <option key={code} value={code}>{code} — {name}</option>)}
+          <label>
+            <span className="xl">Home state</span>
+            <select value={homeState} onChange={(e) => setHomeState(e.target.value)} className="xi" title="Your residency — used to estimate in-state tuition" style={{ width: 76 }}>
+              {STATES.map(([code, name]) => <option key={code} value={code} title={name}>{code}</option>)}
             </select>
           </label>
-          <button
-            onClick={submit}
-            disabled={searchState.phase === 'loading' || course.trim().length < 2}
-            className="rounded-lg bg-cyan-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-cyan-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-          >
-            {searchState.phase === 'loading' ? 'Searching' : 'Find'}
-          </button>
-        </div>
+          <div style={{ paddingTop: 18 }}>
+            <button type="submit" disabled={searchState.phase === 'loading' || course.trim().length < 2} className="xbtn">
+              {searchState.phase === 'loading' ? (
+                <>
+                  <svg style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} viewBox="0 0 24 24" fill="none">
+                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path opacity=".75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  Searching
+                </>
+              ) : (
+                <>
+                  <svg style={{ width: 15, height: 15 }} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="9" cy="9" r="6" /><path d="m14 14 3 3" strokeLinecap="round" />
+                  </svg>
+                  Find
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+        <p style={{ margin: '10px 0 0', fontSize: 11, color: 'var(--t3)' }}>
+          <span style={{ color: 'var(--t2)', fontWeight: 500 }}>State</span> sets search location ·{' '}
+          <span style={{ color: 'var(--t2)', fontWeight: 500 }}>Home state</span> estimates in-state tuition
+        </p>
       </section>
 
+      {/* Idle */}
       {searchState.phase === 'idle' && (
-        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-950">Start with a course, then compare colleges by evidence.</h2>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-            The result groups programs by distance and residency logic, then shows curriculum structure, application papers,
-            fee context, and official links so a family can verify the details before shortlisting.
+        <section className="xc" style={{ padding: 24 }}>
+          <h2 style={{ margin: '0 0 8px', fontFamily: 'var(--fd)', fontSize: 20, fontWeight: 600, color: 'var(--t1)', letterSpacing: '-0.01em' }}>
+            Start with a course, then compare colleges by evidence.
+          </h2>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.75, color: 'var(--t2)', maxWidth: 640 }}>
+            Results are grouped by proximity and residency. Each college shows curriculum structure,
+            admission requirements, fee context, and official links so you can verify before shortlisting.
           </p>
         </section>
       )}
 
+      {/* Loading */}
       {searchState.phase === 'loading' && (
-        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-slate-800">{progressLabel(searchState.progress)}</p>
-            <span className="text-xs font-medium text-slate-400">{progressPct(searchState.progress)}%</span>
+        <section className="xc" style={{ padding: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: 'var(--t1)' }}>
+              {progressLabel(searchState.progress)}
+            </p>
+            <span style={{ fontSize: 12, color: 'var(--t3)', fontWeight: 600 }}>
+              {progressPct(searchState.progress)}%
+            </span>
           </div>
-          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-cyan-600 transition-all duration-500 ease-out"
-              style={{ width: `${progressPct(searchState.progress)}%` }}
-            />
+          <div className="xprog-track">
+            <div className="xprog-fill" style={{ width: `${progressPct(searchState.progress)}%` }} />
           </div>
-          <p className="mt-3 text-xs leading-5 text-slate-500">
-            Research agents are reading each college’s official program pages and extracting the
+          <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--t3)', lineHeight: 1.6 }}>
+            Research agents are reading each college's official program pages and extracting
             curriculum, admissions, and fees. This can take up to a minute.
           </p>
         </section>
       )}
 
+      {/* Error */}
       {searchState.phase === 'error' && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+        <div style={{ background: 'rgba(180,60,50,0.1)', border: '1px solid rgba(180,60,50,0.25)', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#e07070' }}>
           {searchState.message}
         </div>
       )}
 
+      {/* Results */}
       {searchState.phase === 'success' && (
-        <div className="space-y-6">
-          <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
-            <p className="text-sm font-semibold text-cyan-950">
-              {searchState.data.query} near {searchState.data.location_used}
-            </p>
-            <ul className="mt-2 grid gap-2 md:grid-cols-3">
-              {searchState.data.guidance.map((item) => (
-                <li key={item} className="text-xs leading-5 text-cyan-900">{item}</li>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+
+          {/* Guidance */}
+          <div style={{
+            background: 'var(--s1)',
+            border: '1px solid rgba(200,133,42,0.2)',
+            borderLeft: '3px solid var(--amber)',
+            borderRadius: 10,
+            overflow: 'hidden',
+          }}>
+            <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--bdr)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <svg style={{ width: 16, height: 16, color: 'var(--amber)', flexShrink: 0 }} viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
+                {searchState.data.query} near {searchState.data.location_used}
+              </p>
+            </div>
+            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+              {searchState.data.guidance.map((item, i) => (
+                <li key={item} style={{
+                  display: 'flex',
+                  gap: 10,
+                  padding: '12px 18px',
+                  borderTop: i > 0 ? '1px solid var(--bdr)' : undefined,
+                  borderLeft: i > 0 ? '1px solid var(--bdr)' : undefined,
+                }}>
+                  <svg style={{ marginTop: 2, width: 13, height: 13, flexShrink: 0, color: 'var(--amber)' }} viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.7-9.3a1 1 0 00-1.4-1.4L9 10.6 7.7 9.3a1 1 0 00-1.4 1.4l2 2a1 1 0 001.4 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--t2)' }}>{item}</span>
+                </li>
               ))}
             </ul>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">What matters most to you?</p>
-            <div className="mt-2 flex flex-wrap gap-2">
+          {/* Priority chips */}
+          <div className="xc" style={{ padding: '16px 20px' }}>
+            <p className="xsec" style={{ marginBottom: 10 }}>What matters most to you?</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {DECISION_FIELDS.map((field) => {
                 const on = priorities.has(field.id);
                 return (
                   <button
                     key={field.id}
                     onClick={() => togglePriority(field.id)}
-                    className={
-                      on
-                        ? 'rounded-full bg-cyan-600 px-3 py-1 text-xs font-medium text-white'
-                        : 'rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200'
-                    }
+                    className={`xchip ${on ? 'xchip-on' : 'xchip-off'}`}
                   >
                     {field.label}
                   </button>
                 );
               })}
             </div>
-            <p className="mt-2 text-xs text-slate-400">
-              Each college shows how many of these are verified (with their source) and what’s left to confirm.
+            <p style={{ margin: '10px 0 0', fontSize: 11, color: 'var(--t3)' }}>
+              Each college shows how many of these are verified (with their source) and what's left to confirm.
             </p>
           </div>
 
+          {/* Tiers */}
           {searchState.data.tiers.map((tier) => (
-            <section key={tier.tier} className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-slate-950">{tier.title}</h2>
-                <span className="text-xs font-medium text-slate-400">{tier.programs.length} options</span>
+            <section key={tier.tier}>
+              <div className="xtier">
+                <h2 className="xtier-title">{tier.title}</h2>
+                <div className="xtier-line" />
+                <span className="xtier-count">{tier.programs.length} option{tier.programs.length !== 1 ? 's' : ''}</span>
               </div>
               {tier.programs.length > 0 ? (
-                <div className="space-y-4">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {tier.programs.map((ranked) => (
                     <ProgramCard key={ranked.program.program_id} ranked={ranked} priorities={priorities} />
                   ))}
                 </div>
               ) : (
-                <div className="rounded-lg border border-dashed border-slate-200 bg-white p-5 text-sm text-slate-500">
-                  No matching programs in this tier yet.
+                <div style={{
+                  background: 'var(--s1)',
+                  border: '1px dashed var(--bdr2)',
+                  borderRadius: 10,
+                  padding: '20px',
+                  fontSize: 13,
+                  color: 'var(--t3)',
+                  textAlign: 'center',
+                }}>
+                  No matching programs in this tier.
                 </div>
               )}
             </section>
