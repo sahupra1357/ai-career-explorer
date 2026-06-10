@@ -91,7 +91,7 @@ export default function App() {
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
 
       {/* Amber top accent line */}
-      <div style={{ height: 3, background: 'linear-gradient(90deg, var(--amber), var(--amber-lt), var(--amber))' }} />
+      <div style={{ height: 3, background: 'var(--top-stripe)' }} />
 
       {/* Header */}
       <header style={{ background: 'var(--s1)', borderBottom: '1px solid var(--bdr)' }}>

@@ -241,12 +241,12 @@ function ProgramCard({ ranked, priorities }: { ranked: RankedProgram; priorities
               {gaps.map((g, i) =>
                 g.url ? (
                   <a key={i} href={g.url} target="_blank" rel="noreferrer"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px', borderRadius: 99, fontSize: 11, fontWeight: 500, background: 'var(--warn-bg)', color: 'var(--warn)', textDecoration: 'none', outline: '1px solid rgba(200,120,40,0.25)', outlineOffset: -1 }}>
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px', borderRadius: 99, fontSize: 11, fontWeight: 500, background: 'var(--warn-bg)', color: 'var(--warn)', textDecoration: 'none', outline: '1px solid var(--bdr-accent)', outlineOffset: -1 }}>
                     ⚠ {g.label} ↗
                   </a>
                 ) : (
                   <span key={i}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px', borderRadius: 99, fontSize: 11, fontWeight: 500, background: 'var(--warn-bg)', color: 'var(--warn)', outline: '1px solid rgba(200,120,40,0.25)', outlineOffset: -1 }}>
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px', borderRadius: 99, fontSize: 11, fontWeight: 500, background: 'var(--warn-bg)', color: 'var(--warn)', outline: '1px solid var(--bdr-accent)', outlineOffset: -1 }}>
                     ⚠ {g.label}
                   </span>
                 )
@@ -479,7 +479,7 @@ export default function CourseFinder() {
           {/* Guidance */}
           <div style={{
             background: 'var(--s1)',
-            border: '1px solid rgba(200,133,42,0.2)',
+            border: '1px solid var(--bdr-accent)',
             borderLeft: '3px solid var(--amber)',
             borderRadius: 10,
             overflow: 'hidden',
