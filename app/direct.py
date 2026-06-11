@@ -1,17 +1,12 @@
-"""Generate a structured deep-dive for a single STEM field via Claude."""
+"""Generate a structured deep-dive for a single STEM field via the configured LLM provider."""
 from __future__ import annotations
 
-import os
-
 import structlog
-from anthropic import AsyncAnthropic
 
 from app.kb import store
 from app.models import DeepDiveSection, DirectResponse
 
 log = structlog.get_logger()
-
-_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6")
 
 _SECTIONS = [
     ("What it really is", "Explain what this field actually involves day-to-day, beyond the textbook definition. 3-4 sentences, plain English."),
@@ -61,5 +56,3 @@ async def generate_deep_dive(field_id: str) -> DirectResponse | None:
     except Exception as exc:
         log.error("deep_dive_error", field_id=field_id, error=str(exc))
         return None
-    finally:
-        await client.close()

@@ -1,4 +1,4 @@
-"""Claude comparison summary generator with MOCK_CLAUDE and DEBUG_PROMPTS support."""
+"""Comparison summary generator — provider-agnostic via llm.py (LLM_PROVIDER switch)."""
 
 from __future__ import annotations
 
@@ -86,48 +86,6 @@ async def generate_summary(
     if result is not None:
         _summary_cache[field_ids] = result
     return result
-
-
-async def _call_claude(prompt: str, request_id: str) -> str | None:
-    import time
-
-    import anthropic
-
-    client = anthropic.AsyncAnthropic()
-    timeout = float(os.getenv("CLAUDE_TIMEOUT_S", "10"))
-
-    try:
-        start = time.monotonic()
-        message = await client.messages.create(
-            model=os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6"),
-            max_tokens=256,
-            messages=[{"role": "user", "content": prompt}],
-            timeout=timeout,
-        )
-        elapsed = time.monotonic() - start
-        summary = message.content[0].text.strip()
-        log.info(
-            "claude_ok",
-            request_id=request_id,
-            elapsed_ms=round(elapsed * 1000),
-            tokens=message.usage.input_tokens + message.usage.output_tokens,
-        )
-        return summary
-    except anthropic.APITimeoutError:
-        elapsed = time.monotonic() - start
-        log.warning(
-            "claude_timeout",
-            request_id=request_id,
-            elapsed_ms=round(elapsed * 1000),
-            timeout_s=timeout,
-        )
-        return None
-    except anthropic.AuthenticationError:
-        log.error("claude_auth_error", request_id=request_id)
-        return None
-    except Exception as exc:  # noqa: BLE001
-        log.error("claude_error", request_id=request_id, error=str(exc))
-        return None
 
 
 def clear_cache() -> int:

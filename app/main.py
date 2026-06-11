@@ -57,13 +57,20 @@ log = structlog.get_logger()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 1. Fail loudly if API key is missing (unless mocked)
-    if not os.getenv("ANTHROPIC_API_KEY") and os.getenv("MOCK_CLAUDE") != "1":
-        raise RuntimeError(
-            "ANTHROPIC_API_KEY not set. "
-            "Add it to .env or set MOCK_CLAUDE=1 for local dev. "
-            "Get a key at https://console.anthropic.com"
-        )
+    # 1. Fail loudly if the active provider's API key is missing (unless mocked)
+    from app.llm import llm_provider, mock_llm
+    if not mock_llm():
+        provider = llm_provider()
+        if provider == "anthropic" and not os.getenv("ANTHROPIC_API_KEY"):
+            raise RuntimeError(
+                "LLM_PROVIDER=anthropic but ANTHROPIC_API_KEY is not set. "
+                "Add it to .env or set MOCK_LLM=1 for local dev."
+            )
+        if provider == "openai" and not os.getenv("OPENAI_API_KEY"):
+            raise RuntimeError(
+                "LLM_PROVIDER=openai but OPENAI_API_KEY is not set. "
+                "Add it to .env or set MOCK_LLM=1 for local dev."
+            )
 
     # 2. Load and validate the knowledge base
     fields_file = os.getenv("FIELDS_FILE", "data/fields.yaml")
