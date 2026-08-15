@@ -17,3 +17,4 @@ userprompt.md
 tests/openaitest.py
 data/backups/
 .gstack/
+a.py

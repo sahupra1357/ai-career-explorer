@@ -15,6 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/ ./app/
 COPY data/ ./data/
+COPY scripts/ ./scripts/
 COPY --from=ui-builder /ui/dist ./ui/dist
 
 EXPOSE 8000

@@ -1,4 +1,49 @@
-.PHONY: install dev dev-live dev-kg dev-ui dev-real dev-db dev-phase2 migrate embed build-kg load-carnegie load-rankings new-migration test validate-kb add-field clear-cache lint build run run-live run-mock
+.PHONY: install up up-build down restart logs ps docker-build-kg dev dev-live dev-kg dev-ui dev-real dev-db dev-phase2 migrate embed build-kg load-carnegie load-rankings new-migration test validate-kb add-field clear-cache lint build run run-live run-mock
+
+# ── Whole app, one command (Docker) ───────────────────────────────────────────
+# Brings up Postgres -> migrations -> FastAPI serving the built React UI on :8000.
+# No venv, no npm, no second terminal. Requires Docker Desktop running + a .env file.
+
+up:
+	@if ! docker info > /dev/null 2>&1; then \
+		echo "Error: Docker is not running. Start Docker Desktop and try again."; exit 1; \
+	fi
+	@if [ ! -f .env ]; then \
+		echo "Error: .env not found. Run: cp .env.example .env"; exit 1; \
+	fi
+	docker compose up -d --wait
+	@echo ""
+	@echo "App is up: http://localhost:8000   (logs: make logs | stop: make down)"
+
+# Same, but rebuild the image first — use after changing app/, ui/, or requirements.txt.
+up-build:
+	@if ! docker info > /dev/null 2>&1; then \
+		echo "Error: Docker is not running. Start Docker Desktop and try again."; exit 1; \
+	fi
+	@if [ ! -f .env ]; then \
+		echo "Error: .env not found. Run: cp .env.example .env"; exit 1; \
+	fi
+	docker compose up -d --build --wait
+	@echo ""
+	@echo "App is up: http://localhost:8000   (logs: make logs | stop: make down)"
+
+# Stop the stack. The knowledge graph survives in the pgdata volume.
+down:
+	docker compose down
+
+restart: down up
+
+logs:
+	docker compose logs -f app
+
+ps:
+	docker compose ps
+
+# Build the knowledge graph inside Docker (only needed on a fresh pgdata volume).
+# Offline sample:  make docker-build-kg
+# Live Scorecard:  make docker-build-kg ARGS="--source api --states PA,NJ --cip 11,14,26"
+docker-build-kg:
+	docker compose run --rm kg-build $(ARGS)
 
 # ── Setup ─────────────────────────────────────────────────────────────────────
 
@@ -69,12 +114,15 @@ field-template:
 
 # ── Phase 2: Database ─────────────────────────────────────────────────────────
 
-# Start Postgres via Docker Compose (requires Docker Desktop running)
+# Start ONLY Postgres via Docker Compose, for the host-venv dev loop (make dev / dev-kg).
+# Deliberately scoped to the db service — a bare `docker compose up -d` would also start the
+# app container, which then fights the local uvicorn for port 8000. For the whole stack in
+# Docker instead, use `make up`.
 dev-db:
 	@if ! docker info > /dev/null 2>&1; then \
 		echo "Error: Docker is not running. Start Docker Desktop and try again."; exit 1; \
 	fi
-	docker compose up -d
+	docker compose up -d db
 	@echo "Waiting for Postgres to be healthy..."
 	@until docker compose exec db pg_isready -U dev -d career_explorer > /dev/null 2>&1; do sleep 1; done
 	@echo "Postgres is ready."
