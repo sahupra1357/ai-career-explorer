@@ -1,3 +1,24 @@
+# Full local stack: Postgres (KG + pgvector) -> migrations -> FastAPI serving the built React UI.
+#
+#   docker compose up --build        # everything, app on http://localhost:8000
+#   docker compose down              # stop (KG data survives in the pgdata volume)
+#
+# Populate the knowledge graph (one-off, only needed on a fresh pgdata volume):
+#   docker compose run --rm kg-build                       # offline sample
+#   docker compose run --rm kg-build --source api --states PA,NJ --cip 11,14,26,27,40,42,45,51,52
+#
+# Project name is pinned so the existing aicareerexploration_pgdata volume is reused.
+name: aicareerexploration
+
+x-app-env: &app-env
+  # .env supplies the API keys and feature flags; DATABASE_URL is overridden below because
+  # inside the compose network Postgres is db:5432, not localhost:5433.
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    DATABASE_URL: postgresql://dev:dev@db:5432/career_explorer
+
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -14,6 +35,56 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # One-shot: applies scripts/migrations/*.sql, then exits. The app waits for it to succeed.
+  migrate:
+    build: .
+    image: aicareerexploration-app
+    <<: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["python", "scripts/db_migrate.py"]
+    restart: "no"
+
+  app:
+    build: .
+    image: aicareerexploration-app
+    <<: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=5).status == 200 else 1)"
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  # Manual ETL, never started by `up` (profile-gated). Args after the service name are
+  # passed straight to scripts/build_kg.py.
+  kg-build:
+    profiles: ["tools"]
+    build: .
+    image: aicareerexploration-app
+    <<: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    entrypoint: ["python", "scripts/build_kg.py"]
+    command: []
+    restart: "no"
 
 volumes:
   pgdata:
