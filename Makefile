@@ -41,9 +41,18 @@ ps:
 
 # Build the knowledge graph inside Docker (only needed on a fresh pgdata volume).
 # Offline sample:  make docker-build-kg
-# Live Scorecard:  make docker-build-kg ARGS="--source api --states PA,NJ --cip 11,14,26"
+# National:        make docker-build-kg ARGS="--source api --states all"
+# Partial:         make docker-build-kg ARGS="--source api --states PA,NJ --cip 11,14,26"
+#
+# Targets the compose database by default. To load a REMOTE database instead, set
+# DATABASE_URL in the environment and it is forwarded into the container:
+#   DATABASE_URL='postgresql://…/career_explorer?sslmode=require' \
+#     make docker-build-kg ARGS="--source api --states all"
+# The forwarding is explicit because docker compose does NOT pass the shell's environment
+# through: without -e, the service's own DATABASE_URL wins and the load would silently go
+# to the local database while reporting success.
 docker-build-kg:
-	docker compose run --rm kg-build $(ARGS)
+	docker compose run --rm $(if $(DATABASE_URL),-e DATABASE_URL='$(DATABASE_URL)',) kg-build $(ARGS)
 
 # ── Setup ─────────────────────────────────────────────────────────────────────
 
@@ -153,10 +162,9 @@ embed: migrate
 	.venv/bin/python scripts/embed_fields.py
 
 # Build the college knowledge graph into Postgres (offline sample by default; idempotent).
-# Live Scorecard slice: make build-kg ARGS="--source api --states CA,OR --cip 11.07,30.70"
-# 2. national CS + Data Science build (replaces sample rows in Postgres):
-# make build-kg ARGS="--source api --states CA,OR,WA,NV,AZ,TX,NY,MA,IL,GA --cip 11.07,30.70"
-# (or all states — just extend the --states list)
+# National build (50 states + DC, every supported CIP family — the normal one):
+#   make build-kg ARGS="--source api --states all"
+# Partial slice: make build-kg ARGS="--source api --states CA,OR --cip 11.07,30.70"
 build-kg: migrate
 	@if [ -z "$$DATABASE_URL" ]; then \
 		if [ -f .env ]; then \

@@ -7,6 +7,8 @@ Usage:
     make build-kg                 # offline: load data/scorecard_sample.json
     python scripts/build_kg.py --source api --states CA,OR,WA --cip 11.07,30.70
                                   # live: College Scorecard API (needs SCORECARD_API_KEY)
+    python scripts/build_kg.py --source api --states all --cip <families>
+                                  # national: every state + DC (see ALL_STATES)
 
 The serving layer (PostgresKGStore) reads these tables; nothing here is shown to a user
 without a source label + as_of year (see app/course_search/knowledge_graph.py).
@@ -26,6 +28,27 @@ load_dotenv()
 
 SAMPLE_PATH = Path("data/scorecard_sample.json")
 SCORECARD_API = "https://api.data.gov/ed/collegescorecard/v1/schools"
+
+# All 50 states + DC — `--states all`. Spelled out rather than typed by hand at the command
+# line, where a missing or misspelled code silently yields a knowledge graph with a hole in
+# it: searches in that state come back empty and look like a data gap, not a typo.
+ALL_STATES = [
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID", "IL",
+    "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE",
+    "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD",
+    "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+]
+
+# The CIP families the product covers today (see app/course_search/cip_aliases.py):
+# computer science, engineering, biology, math/stats, data science, physical sciences,
+# psychology, social sciences, health/nursing, and business.
+DEFAULT_CIP_FAMILIES = "11,14,26,27,30.70,30.71,40,42,45,51.38,51.39,52"
+
+
+def _parse_states(raw: str) -> list[str]:
+    if raw.strip().lower() == "all":
+        return list(ALL_STATES)
+    return [s.strip().upper() for s in raw.split(",") if s.strip()]
 
 
 def load_sample() -> tuple[str, int, list[dict]]:
@@ -64,8 +87,10 @@ async def fetch_scorecard(states: list[str], cips: list[str]) -> tuple[str, int,
         "latest.earnings.10_yrs_after_entry.median", "latest.programs.cip_4_digit",
     ])
     colleges: list[dict] = []
+    total_states = len(states)
     async with httpx.AsyncClient(timeout=30) as client:
-        for state in states:
+        for index, state in enumerate(states, start=1):
+            before = len(colleges)
             page = 0
             while True:
                 resp = await client.get(SCORECARD_API, params={
@@ -84,6 +109,14 @@ async def fetch_scorecard(states: list[str], cips: list[str]) -> tuple[str, int,
                 page += 1
                 if not results or page * meta.get("per_page", 100) >= meta.get("total", 0):
                     break
+            # One line per state: a national build is minutes of silence otherwise, which is
+            # indistinguishable from a hang. flush=True because this usually runs piped
+            # (docker compose run, CI), where stdout is block-buffered.
+            print(
+                f"  [{index:>2}/{total_states}] {state}: "
+                f"{len(colleges) - before:>4} matching colleges  (running total {len(colleges)})",
+                flush=True,
+            )
     return "College Scorecard", _latest_year(), colleges
 
 
@@ -162,13 +195,16 @@ async def main(args) -> None:
         sys.exit(1)
 
     if args.source == "api":
+        states = _parse_states(args.states)
+        print(f"Fetching {len(states)} state(s) x {len(args.cip.split(','))} CIP families...")
         source, as_of, colleges = await fetch_scorecard(
-            [s.strip().upper() for s in args.states.split(",") if s.strip()],
+            states,
             [c.strip() for c in args.cip.split(",") if c.strip()],
         )
     else:
         source, as_of, colleges = load_sample()
 
+    print(f"Fetched {len(colleges)} colleges. Writing to the database...", flush=True)
     conn = await asyncpg.connect(db_url)
     try:
         n_c, n_o = await upsert(conn, source, as_of, colleges)
@@ -185,6 +221,12 @@ def _latest_year() -> int:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Build the college knowledge graph into Postgres.")
     parser.add_argument("--source", choices=["sample", "api"], default="sample")
-    parser.add_argument("--states", default="CA,OR,WA,NV,IL,NY,MA,TX")
-    parser.add_argument("--cip", default="11.07,30.70")
+    parser.add_argument(
+        "--states", default="all",
+        help='Comma-separated postal codes, or "all" for the 50 states + DC (default).',
+    )
+    parser.add_argument(
+        "--cip", default=DEFAULT_CIP_FAMILIES,
+        help="Comma-separated CIP families to ingest (default: every family the app covers).",
+    )
     asyncio.run(main(parser.parse_args()))
