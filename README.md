@@ -25,23 +25,124 @@ make up                   # Postgres → migrations → API + built UI on :8000
 
 Open http://localhost:8000. `make logs` to follow, `make down` to stop.
 
-On a fresh database, populate the knowledge graph once:
-
-```bash
-make docker-build-kg                                    # offline sample (8 colleges)
-make docker-build-kg ARGS="--source api --states PA,NJ --cip 11,14,26,27,40,42,45,51,52"
-```
+Then run the **initial setup** below — on a fresh database the app starts, but every search
+returns empty until the knowledge graph is loaded.
 
 <details>
 <summary>Host dev loop (hot reload, no Docker for the app)</summary>
 
 ```bash
 make install     # python3.13 venv + deps
-make dev-db      # Postgres only, on :5433
+make dev-db      # Postgres only, on :5433 — required, the app will not start without it
 make dev-kg      # backend on :8000 (or `make dev` / `make dev-real`)
 make dev-ui      # Vite on :5173, proxies /api → :8000
 ```
 </details>
+
+---
+
+## Initial setup (once per database)
+
+Migrations run themselves — the container `CMD` applies them before uvicorn starts, so a new
+database gets its schema on the next deploy. **Data is not automatic.** These two loads pull
+from external APIs, so they are deliberately manual rather than running on every container
+start; without them the app serves honestly empty results.
+
+Run both against whichever database you are setting up — local, or a deployed one via its
+**External** URL. Nothing needs restarting afterwards; the app reads the tables live.
+
+### 1. Knowledge graph — every state
+
+```bash
+cd ~/AICareerExploration
+
+# Local (Postgres from `make dev-db` / `make up`)
+DATABASE_URL='postgresql://dev:dev@localhost:5433/career_explorer' \
+  .venv/bin/python scripts/build_kg.py --source api --states all
+
+# Deployed database (external URL — this is what that URL is for)
+DATABASE_URL='postgresql://<user>:<pass>@<host>/career_explorer?sslmode=require' \
+  .venv/bin/python scripts/build_kg.py --source api --states all
+```
+
+`--states all` covers the **50 states + DC** (`ALL_STATES` in the script), and `--cip`
+defaults to every CIP family the product supports — so the command above is the full national
+build. Both defaults exist so nobody hand-types 51 postal codes: one missing code produces a
+knowledge graph with a silent hole in it, where searches in that state look like a data gap
+rather than a typo.
+
+`SCORECARD_API_KEY` is read from `.env` (free from api.data.gov). The ETL upserts, so it is
+safe to re-run — that is also how you refresh when College Scorecard publishes a new year.
+
+No local Python? Run the same thing through Docker:
+
+```bash
+# ...against the compose database
+make docker-build-kg ARGS="--source api --states all"
+
+# ...against a remote database — DATABASE_URL is forwarded into the container
+DATABASE_URL='postgresql://<user>:<pass>@<host>/career_explorer?sslmode=require' \
+  make docker-build-kg ARGS="--source api --states all"
+```
+
+The `make` target forwards `DATABASE_URL` with `-e` deliberately: `docker compose run` does
+**not** inherit the shell environment, so a bare `DATABASE_URL=… docker compose run kg-build`
+loads the *local* database while reporting success.
+
+> **Rebuild the image after changing `scripts/` or `app/`.** `docker compose run` uses the
+> image as last built and never rebuilds, so an edited script has no effect until you run
+> `docker compose build app` (or `make up-build`). This fails quietly: an image predating
+> `--states all` treats `all` as a literal postal code, matches no institutions, and reports
+> `Knowledge graph built: 0 colleges, 0 offerings`. The venv commands above read the working
+> tree directly and never need a rebuild.
+
+Either way the ETL reports progress as it goes — one line per state, then the write:
+
+```
+Fetching 51 state(s) x 12 CIP families...
+  [ 1/51] AL:   47 matching colleges  (running total 47)
+  [ 2/51] AK:    4 matching colleges  (running total 51)
+  ...
+Fetched 1715 colleges. Writing to the database...
+Knowledge graph built: 1715 colleges, 60090 offerings (source: College Scorecard 2025).
+```
+
+Narrow it only if you want a faster partial load:
+
+```bash
+.venv/bin/python scripts/build_kg.py --source api --states PA,NJ,NY --cip 11,51.38
+```
+
+### 2. Field embeddings (Explore mode)
+
+Deployments set `MOCK_EMBEDDINGS=0`, so Explore runs a real pgvector search. Without this load
+its recommendations come back empty:
+
+```bash
+DATABASE_URL='<same URL>' OPENAI_API_KEY='<your key>' \
+  .venv/bin/python scripts/embed_fields.py
+```
+
+Loads 20 fields x 5 dimensions = 100 rows.
+
+### 3. Verify
+
+```bash
+psql '<same URL>' \
+  -c 'select count(*) from kg_colleges;' \
+  -c 'select count(*) from kg_offerings;' \
+  -c 'select count(*) from field_embeddings;'
+```
+
+A national build takes **about 2-3 minutes** (measured: 141s to a fresh database) and lands
+roughly **1,715 colleges / 35,100 offerings across all 51 states / 100 embedding rows**. Note
+the ETL's closing line reports rows *processed* (~60k), which is higher than rows *stored* —
+`kg_offerings` is unique on `(unitid, cip)`, so an institution appearing under several CIP
+queries collapses to one row.
+
+Then search for a course you know exists nearby — populated tiers mean the graph is live. Four
+empty tiers after this means `DATABASE_URL` points somewhere other than the database you just
+loaded.
 
 ---
 
@@ -405,14 +506,15 @@ pulls tens of thousands of rows from the College Scorecard API and shouldn't run
 boot. Without it, course search has nothing to search:
 
 ```bash
-DATABASE_URL='postgresql://…/career_explorer?sslmode=require' SCORECARD_API_KEY='…' \
-  .venv/bin/python scripts/build_kg.py --source api \
-  --states PA,NJ,NY,DE,MD --cip 11,14,26,27,30.70,30.71,40,42,45,51.38,51.39,52
+DATABASE_URL='postgresql://…/career_explorer?sslmode=require' \
+  .venv/bin/python scripts/build_kg.py --source api --states all
 ```
 
-The key is free from api.data.gov (`scripts/build_kg.py` also reads it from `.env`). Widen
-`--states` to all 50 + DC for national coverage (~1,700 colleges, ~35k offerings). Re-run any
-time; the ETL upserts. Verify before deploying:
+That is the full national build — `--states all` is the 50 states + DC, and `--cip` defaults
+to every family the app covers. About 2-3 minutes, ~1,715 colleges and ~35k offerings. `SCORECARD_API_KEY` comes
+from `.env`; the key is free from api.data.gov. Re-run any time; the ETL upserts. See
+[Initial setup](#initial-setup-once-per-database) for the full walkthrough. Verify before
+deploying:
 
 ```bash
 psql 'postgresql://…/career_explorer?sslmode=require' \
