@@ -1,4 +1,5 @@
-# Full local stack: Postgres (KG + pgvector) -> migrations -> FastAPI serving the built React UI.
+# Full local stack: Postgres (KG + pgvector) -> FastAPI serving the built React UI.
+# The app image applies migrations itself (Dockerfile CMD) before uvicorn starts.
 #
 #   docker compose up --build        # everything, app on http://localhost:8000
 #   docker compose down              # stop (KG data survives in the pgdata volume)
@@ -36,17 +37,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # One-shot: applies scripts/migrations/*.sql, then exits. The app waits for it to succeed.
-  migrate:
-    build: .
-    image: aicareerexploration-app
-    <<: *app-env
-    depends_on:
-      db:
-        condition: service_healthy
-    command: ["python", "scripts/db_migrate.py"]
-    restart: "no"
-
+  # The image's CMD runs migrations, then uvicorn — so `up` needs nothing but a healthy db.
   app:
     build: .
     image: aicareerexploration-app
@@ -54,8 +45,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
     ports:
       - "8000:8000"
     healthcheck:
@@ -80,8 +69,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
     entrypoint: ["python", "scripts/build_kg.py"]
     command: []
     restart: "no"
