@@ -105,8 +105,27 @@ export default function App() {
               fontWeight: 700,
               color: 'var(--t1)',
               letterSpacing: '-0.02em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
             }}>
-              STEM Career Explorer
+              Career Explorer
+              {/* Distinct by contrast rather than size alone: sans against the serif
+                  wordmark, teal against navy, on a soft teal pill. */}
+              <span style={{
+                fontFamily: 'var(--fb)',
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: '0.03em',
+                color: 'var(--teal)',
+                background: 'var(--teal-bg)',
+                border: '1px solid var(--teal)',
+                borderRadius: 999,
+                padding: '3px 9px',
+                whiteSpace: 'nowrap',
+              }}>
+                Empowered by AI
+              </span>
             </h1>
             <span style={{
               fontSize: 11,
@@ -263,13 +282,27 @@ export default function App() {
 
       <footer style={{
         borderTop: '1px solid var(--bdr)',
-        padding: '20px 24px',
+        padding: '24px 24px 28px',
         textAlign: 'center',
         fontSize: 11,
         color: 'var(--t3)',
         letterSpacing: '0.03em',
+        lineHeight: 1.7,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6,
       }}>
-        Salary data: BLS Occupational Outlook Handbook · AI summaries via Claude · Data sourced and cited per field
+        <div style={{ color: 'var(--t2)', fontWeight: 500 }}>
+          © {new Date().getFullYear()} Career Explorer. All rights reserved.
+        </div>
+        <div style={{ maxWidth: 720, margin: '0 auto' }}>
+          Institutional data: U.S. Department of Education College Scorecard (public domain).
+          Program details from official .edu pages, cited per result.
+        </div>
+        <div style={{ maxWidth: 720, margin: '0 auto' }}>
+          Independent research tool. Not affiliated with, endorsed by, or licensed from any
+          college or ranking publisher.
+        </div>
       </footer>
     </div>
   );
