@@ -490,10 +490,25 @@ class PostgresKGStore:
 
 
 def get_kg_store() -> KGStore:
-    """Pick the KG store: Postgres when DATABASE_URL + KG_BACKEND=postgres, else the sample."""
-    if os.getenv("KG_BACKEND") == "postgres" and os.getenv("DATABASE_URL"):
-        return PostgresKGStore(os.environ["DATABASE_URL"])
-    return SampleKGStore()
+    """Postgres by default; the 8-college offline sample ONLY when explicitly requested.
+
+    There is no silent fallback. A misconfigured deployment used to quietly serve the demo
+    file's eight colleges as if they were the real national graph — indistinguishable from
+    a working system to the student reading it. Now a missing DATABASE_URL raises, and the
+    sample store is reachable only by asking for it by name (KG_BACKEND=sample, for tests
+    and offline development).
+    """
+    backend = (os.getenv("KG_BACKEND") or "postgres").strip().lower()
+    if backend == "sample":
+        return SampleKGStore()
+
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        raise RuntimeError(
+            f"KG_BACKEND={backend} requires DATABASE_URL, which is not set. Set it, or "
+            "request the offline demo data explicitly with KG_BACKEND=sample."
+        )
+    return PostgresKGStore(database_url)
 
 
 # ── Discovery provider ─────────────────────────────────────────────────────────

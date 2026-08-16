@@ -73,6 +73,9 @@ async def lifespan(app: FastAPI):
             )
 
     # 2. Load and validate the knowledge base
+    #    (Schema migrations are NOT run here — the container CMD applies them before
+    #    uvicorn starts, so a failed migration fails the container instead of the request
+    #    path. See the Dockerfile and scripts/db_migrate.py.)
     fields_file = os.getenv("FIELDS_FILE", "data/fields.yaml")
     store.load(fields_file)
     log.info("kb_loaded", path=fields_file, count=len(store))
@@ -81,21 +84,25 @@ async def lifespan(app: FastAPI):
     program_store.load(programs_file)
     log.info("programs_loaded", path=programs_file, count=len(program_store))
 
-    # 3. Phase 2: connect pgvector (skip when MOCK_EMBEDDINGS=1)
+    # 3. Connect Postgres. The database is a HARD dependency: a missing or unreachable one
+    #    fails startup rather than degrading to sample/mock data. Serving demo rows to a
+    #    student as though they were real college facts is worse than serving nothing, and
+    #    a silent fallback is exactly how that happens. Fail here, and the container exits
+    #    non-zero so the platform keeps the last good deploy live.
     app.state.db_pool = None
-    if os.getenv("MOCK_EMBEDDINGS") != "1":
-        database_url = os.getenv("DATABASE_URL")
-        if database_url:
-            try:
-                import asyncpg
-                app.state.db_pool = await asyncpg.create_pool(
-                    database_url, min_size=2, max_size=10
-                )
-                log.info("db_pool_ready")
-            except Exception as exc:
-                log.warning("db_pool_failed", error=str(exc))
-        else:
-            log.warning("database_url_missing", hint="set DATABASE_URL in .env or use MOCK_EMBEDDINGS=1")
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        raise RuntimeError(
+            "DATABASE_URL is not set. The database is required — this app does not serve "
+            "sample or mocked data in its place. Start Postgres (make dev-db) and set "
+            "DATABASE_URL, or point it at your deployed database."
+        )
+    try:
+        import asyncpg
+        app.state.db_pool = await asyncpg.create_pool(database_url, min_size=2, max_size=10)
+        log.info("db_pool_ready")
+    except Exception as exc:
+        raise RuntimeError(f"Could not connect to DATABASE_URL: {exc}") from exc
 
     # 4. Phase 2: compile LangGraph explore graph
     from .explore_graph import get_graph
