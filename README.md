@@ -11,7 +11,8 @@ teach it. Two halves share one app:
 The governing rule for the aggregator is **no manufactured data**. Nothing shown to a student
 is invented: every figure carries a source label and an as-of date, and a field that cannot be
 verified is rendered as "unavailable — verify on the official site" with a link, never as a
-blank that implies a value.
+blank that implies a value. The same rule governs failure: if the database is missing or
+unreachable, the app **fails to start** rather than quietly serving sample data in its place.
 
 ---
 
@@ -242,9 +243,11 @@ verify-links only. Licensed ranks load into `kg_rankings` and serve only when `R
 | `live` | Web discovery only, no KG | slow | extraction only | Debugging discovery |
 | `fallback` | `data/college_programs.yaml` | instant | none | Tests, offline demos |
 
-`kg` and `agent` need `KG_BACKEND=postgres` + a populated KG; with `KG_BACKEND=sample` you get
-the 8-college demo file. Note that `live` mode drops the KG entirely and returns thin stubs —
-if results look empty or placeholder-ish, check that mode isn't exported in your shell.
+`kg` and `agent` need a populated Postgres KG — that is the default, and a missing
+`DATABASE_URL` now raises at startup rather than degrading. The 8-college demo file is served
+only when explicitly requested with `KG_BACKEND=sample`. Note that `live` mode drops the KG
+entirely and returns thin stubs — if results look empty or placeholder-ish, check that mode
+isn't exported in your shell.
 
 ---
 
@@ -326,4 +329,148 @@ but gets real KG rows instead. Run tests with the fallback repo as shown.
 
 `Dockerfile` is a two-stage build (Node builds the React app; Python serves it and the API from
 one process on `:8000`). `render.yaml` deploys it to Render. `docker-compose.yml` runs the full
-local stack — `db` → `migrate` (one-shot) → `app`, plus a profile-gated `kg-build` for the ETL.
+local stack — `db` → `app` (which migrates itself on start), plus a profile-gated `kg-build`
+for the ETL.
+
+### Deploying to Render (free tier, own database on an existing instance)
+
+The blueprint deliberately does **not** declare a database, so a deploy never creates or
+touches one. You point it at a database you own.
+
+**Use a separate logical database on your existing Postgres instance** — not a second instance,
+and not shared tables. Render's free tier allows only *one* free Postgres instance per
+workspace, so a second instance isn't an option; but one instance can host many databases, and
+Render supports creating them. A dedicated database gives full isolation — its own
+`schema_migrations`, its own extensions, its own backups-by-name — with no `search_path`
+juggling and no chance of adopting another project's tables.
+
+Steps 1–4 run from your laptop, because the database must have its schema and knowledge graph
+before the web service is worth deploying.
+
+**1. Create the database on the existing instance.** Take the instance's *External Database URL*
+from the Render dashboard (your DB → *Connections*) and connect with `psql`:
+
+```bash
+psql 'postgresql://<user>:<pass>@<host>/<existing_db>?sslmode=require' \
+  -c 'CREATE DATABASE career_explorer;'
+```
+
+If that returns `permission denied to create database`, the role lacks `CREATEDB` — fall back to
+a dedicated schema in the existing database (`CREATE SCHEMA career_explorer;` plus
+`?options=-csearch_path%3Dcareer_explorer,public` on every connection string below; the
+`,public` part is required, or migration 001 fails with `type "vector" does not exist`).
+
+**2. Build the connection string** for the new database. Every database on one instance shares
+the same host and credentials — only the database name changes:
+
+```
+postgresql://<user>:<pass>@<host>/career_explorer?sslmode=require
+```
+
+- Use the **External URL** form (with `sslmode=require`) for the local steps below.
+- For Render's `DATABASE_URL`, prefer the **Internal URL** host if the web service is in the
+  same region as the database — swap the database name the same way. Otherwise keep the
+  external form. `asyncpg` reads `sslmode` straight from the DSN.
+
+**3. Migrations — automatic.** The image's `CMD` is
+`python scripts/db_migrate.py && uvicorn app.main:app …`, so every container start applies
+pending migrations before the server comes up. Nothing to run here on the first deploy, and
+nothing to remember when the schema changes later: **point `DATABASE_URL` at a new empty
+database, redeploy, and it builds its own schema** (`schema_migrations`, `field_embeddings`,
+`kg_colleges`, `kg_offerings`, `kg_rankings`, `kg_investigations`, plus the `vector` and
+`pg_trgm` extensions). Already-applied versions are skipped, and an advisory lock keeps
+concurrent starts from racing.
+
+Baking it into the image rather than an env var or a platform hook means it cannot be
+forgotten, and it behaves identically on Render, `docker compose`, and a bare `docker run` —
+which matters here because Render's free tier offers neither `preDeployCommand` nor shell
+access. If a migration fails, `&&` short-circuits, the container exits non-zero, and Render
+keeps the previous deploy live instead of serving a half-built schema.
+
+There is no degraded mode. An unset or unreachable `DATABASE_URL` fails the migration step,
+and the app's own startup fails too if the pool can't be created — the container never serves.
+Showing a student the 8-college demo file dressed up as the real national graph is worse than
+showing nothing, so the sample store is reachable only by asking for it by name
+(`KG_BACKEND=sample`, for tests and offline development).
+
+To apply migrations by hand — against a remote database, or during local host development:
+
+```bash
+DATABASE_URL='postgresql://…/career_explorer?sslmode=require' \
+  .venv/bin/python scripts/db_migrate.py     # or: make migrate
+```
+
+**4. Populate the knowledge graph** — the one step that is *not* automatic, because it
+pulls tens of thousands of rows from the College Scorecard API and shouldn't run on every
+boot. Without it, course search has nothing to search:
+
+```bash
+DATABASE_URL='postgresql://…/career_explorer?sslmode=require' SCORECARD_API_KEY='…' \
+  .venv/bin/python scripts/build_kg.py --source api \
+  --states PA,NJ,NY,DE,MD --cip 11,14,26,27,30.70,30.71,40,42,45,51.38,51.39,52
+```
+
+The key is free from api.data.gov (`scripts/build_kg.py` also reads it from `.env`). Widen
+`--states` to all 50 + DC for national coverage (~1,700 colleges, ~35k offerings). Re-run any
+time; the ETL upserts. Verify before deploying:
+
+```bash
+psql 'postgresql://…/career_explorer?sslmode=require' \
+  -c 'select count(*) from kg_colleges;' -c 'select count(*) from kg_offerings;'
+```
+
+**4b. Embed the STEM fields** — `render.yaml` sets `MOCK_EMBEDDINGS=0`, so Explore runs a real
+pgvector search instead of returning a random sample. Without this the table is empty and Explore
+returns no recommendations (honestly empty, but empty):
+
+```bash
+DATABASE_URL='postgresql://…/career_explorer?sslmode=require' OPENAI_API_KEY='…' \
+  .venv/bin/python scripts/embed_fields.py
+```
+
+**5. Create the service.** Render dashboard → *New* → *Blueprint* → pick this repo. Render reads
+`render.yaml` and creates the `ai-career-explorer` Docker web service.
+
+**6. Set the secrets** — every `sync: false` var, in the service's *Environment* tab:
+
+| Variable | Value |
+|---|---|
+| `DATABASE_URL` | the step-2 URL for `career_explorer` (Internal host if same region) |
+| `OPENAI_API_KEY` | required when `LLM_PROVIDER=openai` (the default) |
+| `ANTHROPIC_API_KEY` | required instead when `LLM_PROVIDER=anthropic` |
+| `TAVILY_API_KEY` | subagent web search |
+
+The missing-key check runs at startup and raises, so a wrong provider/key pairing fails the
+deploy loudly rather than at first request.
+
+**7. Deploy and verify:**
+
+```bash
+curl -s https://<your-service>.onrender.com/health
+curl -s -X POST https://<your-service>.onrender.com/api/course-search \
+  -H 'content-type: application/json' \
+  -d '{"course_query":"nursing","city":"Philadelphia","state":"PA"}'
+```
+
+`/health` returning `fields_loaded: 20` only proves the app booted — it does **not** touch the
+database. Confirm the DB wiring with a real course search: populated tiers mean the KG is
+connected; four empty tiers mean `DATABASE_URL`/`KG_BACKEND` didn't take, or step 4 hasn't run.
+
+**Notes for later deploys**
+
+- **Migrations run themselves** from the container `CMD` — no `preDeployCommand`, no shell,
+  no env var to set. This mirrors the migrate-then-serve pattern used by the sibling
+  ContractReviewSystem deployment.
+- **Free instances sleep** after ~15 minutes idle, so the first request after a nap pays a cold
+  start on top of the 30–60s agent fan-out. `AGENT_CONCURRENCY` is set to 2 for the free
+  instance's memory; raise it on a paid plan.
+- **Explore mode** ships with `MOCK_EMBEDDINGS=1`, which returns a random KB sample instead of a
+  real pgvector search. For genuine recommendations set it to `0` and run
+  `DATABASE_URL=… .venv/bin/python scripts/embed_fields.py` (costs OpenAI embedding calls).
+- **If the instance is a *free* Render Postgres, it expires 30 days after creation** (then a
+  14-day grace period before deletion) — and that clock belongs to the instance, so a new
+  database inside it inherits the same deadline and takes both projects down together.
+  Recovery is two steps: create the database on the new instance, update `DATABASE_URL`, and
+  redeploy — the schema rebuilds itself; then re-run step 4 to reload the knowledge graph.
+- **Cost control:** the agent path caches investigations in `kg_investigations` for
+  `INVESTIGATION_TTL_DAYS` (30), so repeat searches on the same course don't re-pay the LLM.

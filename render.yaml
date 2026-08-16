@@ -17,8 +17,12 @@ services:
         value: "claude-sonnet-4-6"
       - key: MOCK_CLAUDE
         value: "0"
+      - key: MOCK_LLM
+        value: "0"
+      # No mocked content in a deployed environment: real embeddings + real pgvector
+      # search. Requires field_embeddings to be populated (scripts/embed_fields.py).
       - key: MOCK_EMBEDDINGS
-        value: "1"
+        value: "0"
       - key: CLAUDE_TIMEOUT_S
         value: "15"
       - key: COURSE_SEARCH_MODE
@@ -27,4 +31,24 @@ services:
         value: "tavily"
       - key: TAVILY_API_KEY
         sync: false        # set manually in Render dashboard — never committed
+      # --- Existing (external or pre-existing Render) Postgres ------------------
+      # Paste the connection string in the dashboard. Use the DB's INTERNAL URL when
+      # it lives in this same Render account+region; otherwise the EXTERNAL URL
+      # (append ?sslmode=require). Deliberately NOT `fromDatabase:` — that key is for
+      # a database this blueprint creates, not one that already exists.
+      - key: DATABASE_URL
+        sync: false
+      # Serve course search from the kg_* tables in that database rather than the
+      # 8-college offline sample. Requires the KG to be populated (see README).
+      - key: KG_BACKEND
+        value: "postgres"
+      # Agent fan-out: keep low on a free instance and a low LLM tier.
+      - key: AGENT_CONCURRENCY
+        value: "2"
+      - key: AGENT_MAX_ROUNDS
+        value: "4"
     healthCheckPath: /health
+    # No preDeployCommand: the image's CMD already runs `python scripts/db_migrate.py`
+    # before uvicorn, so migrations apply on every deploy — including on the free tier,
+    # where Render offers neither pre-deploy commands nor shell access. Repoint
+    # DATABASE_URL at a new empty database, redeploy, and the schema builds itself.
