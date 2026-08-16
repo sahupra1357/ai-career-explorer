@@ -267,20 +267,10 @@ async def explore(body: ExploreRequest, request: Request):
     from .explore_graph import ExploreGraphState
     from .session_store import get_session, new_session, save_session
 
-    mock = os.getenv("MOCK_EMBEDDINGS") == "1"
+    # No db_unavailable guard here: startup fails when the pool cannot be created, so a
+    # serving app always has one. The old 503 branch was unreachable and its advice
+    # ("set MOCK_EMBEDDINGS=1 for zero-infra dev") described a mode that no longer exists.
     pool = request.app.state.db_pool
-    if not mock and pool is None:
-        return JSONResponse(
-            status_code=503,
-            content={
-                "error": "db_unavailable",
-                "message": (
-                    "pgvector is not connected. Start Postgres with 'make dev-db', "
-                    "run 'make embed', then restart the server. "
-                    "Or set MOCK_EMBEDDINGS=1 in .env for zero-infra dev."
-                ),
-            },
-        )
 
     session_id = body.session_id
     if session_id:
